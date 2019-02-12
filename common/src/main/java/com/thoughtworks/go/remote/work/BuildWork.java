@@ -16,6 +16,7 @@
 
 package com.thoughtworks.go.remote.work;
 
+import com.thoughtworks.go.config.materials.tfs.TfsMaterial;
 import com.thoughtworks.go.domain.*;
 import com.thoughtworks.go.domain.materials.MaterialAgentFactory;
 import com.thoughtworks.go.plugin.access.scm.SCMExtension;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import static com.thoughtworks.go.util.ExceptionUtils.bomb;
 import static com.thoughtworks.go.util.ExceptionUtils.messageOf;
@@ -164,6 +166,11 @@ public class BuildWork implements Work {
         for (MaterialRevision revision : materialRevisions.getRevisions()) {
             materialAgentFactory.createAgent(revision).prepare();
         }
+    }
+
+    public boolean hasTFSMaterial() {
+        return StreamSupport.stream(materialRevisions.spliterator(), true)
+                .anyMatch(materialRevision -> materialRevision.getMaterial() instanceof TfsMaterial);
     }
 
     private ProcessOutputStreamConsumer<GoPublisher, GoPublisher> processOutputStreamConsumer() {
