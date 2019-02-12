@@ -16,6 +16,8 @@
 
 package com.thoughtworks.go.agent;
 
+import com.thoughtworks.go.agent.launcher.DownloadableFile;
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.agent.statusapi.AgentHealthHolder;
@@ -26,6 +28,8 @@ import com.thoughtworks.go.domain.AgentStatus;
 import com.thoughtworks.go.plugin.infra.PluginManager;
 import com.thoughtworks.go.plugin.infra.PluginManagerReference;
 import com.thoughtworks.go.remote.AgentIdentifier;
+import com.thoughtworks.go.remote.work.BuildWork;
+import com.thoughtworks.go.remote.work.Work;
 import com.thoughtworks.go.server.service.AgentRuntimeInfo;
 import com.thoughtworks.go.server.service.ElasticAgentRuntimeInfo;
 import com.thoughtworks.go.util.SubprocessLogger;
@@ -52,6 +56,7 @@ public abstract class AgentController {
     private SubprocessLogger subprocessLogger;
     private AgentUpgradeService agentUpgradeService;
     private final AgentHealthHolder agentHealthHolder;
+    private final ServerBinaryDownloader serverBinaryDownloader;
     private final String hostName;
     private final String ipAddress;
 
@@ -61,13 +66,15 @@ public abstract class AgentController {
                            PluginManager pluginManager,
                            SubprocessLogger subprocessLogger,
                            AgentUpgradeService agentUpgradeService,
-                           AgentHealthHolder agentHealthHolder) {
+                           AgentHealthHolder agentHealthHolder,
+                           ServerBinaryDownloader serverBinaryDownloader) {
         this.sslInfrastructureService = sslInfrastructureService;
         this.systemEnvironment = systemEnvironment;
         this.agentRegistry = agentRegistry;
         this.subprocessLogger = subprocessLogger;
         this.agentUpgradeService = agentUpgradeService;
         this.agentHealthHolder = agentHealthHolder;
+        this.serverBinaryDownloader = serverBinaryDownloader;
         PluginManagerReference.reference().setPluginManager(pluginManager);
         hostName = SystemUtil.getLocalhostNameOrRandomNameIfNotFound();
         ipAddress = SystemUtil.getClientIp(systemEnvironment.getServiceUrl());
@@ -168,6 +175,12 @@ public abstract class AgentController {
         File pipelines = new File(currentWorkingDirectory(), "pipelines");
         if (!pipelines.exists()) {
             pipelines.mkdirs();
+        }
+    }
+
+    void downloadTFSJarIfRequired(Work work) {
+        if (work instanceof BuildWork && ((BuildWork) work).hasTFSMaterial()) {
+            serverBinaryDownloader.downloadIfNecessary(DownloadableFile.TFS_IMPL);
         }
     }
 }

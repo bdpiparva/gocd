@@ -16,6 +16,7 @@
 
 package com.thoughtworks.go.agent;
 
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.buildsession.BuildSessionBasedTestCase;
@@ -42,6 +43,7 @@ import org.apache.http.HttpVersion;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -98,6 +100,8 @@ public class AgentWebSocketClientControllerTest {
     private WebSocketClientHandler webSocketClientHandler;
     @Mock
     private WebSocketSessionHandler webSocketSessionHandler;
+    @Mock
+    private ServerBinaryDownloader serverBinaryDownloader;
     private String agentUuid = "uuid";
 
 
@@ -106,13 +110,17 @@ public class AgentWebSocketClientControllerTest {
         new GuidService().delete();
     }
 
+    @Before
+    public void setUp() throws Exception {
+        agentController = createAgentController();
+    }
+
     @Test
     public void shouldSendAgentRuntimeInfoWhenWorkIsCalled() throws Exception {
         when(sslInfrastructureService.isRegistered()).thenReturn(true);
         when(webSocketSessionHandler.isNotRunning()).thenReturn(false);
         ArgumentCaptor<Message> argumentCaptor = ArgumentCaptor.forClass(Message.class);
 
-        agentController = createAgentController();
         agentController.init();
 
         agentController.work();
@@ -129,7 +137,7 @@ public class AgentWebSocketClientControllerTest {
     public void shouldHandleSecurityErrorWhenOpeningWebSocketFails() throws Exception {
         when(sslInfrastructureService.isRegistered()).thenReturn(true);
 
-        agentController = createAgentController();
+
         when(webSocketSessionHandler.isNotRunning()).thenReturn(true);
         doThrow(new GeneralSecurityException()).when(webSocketClientHandler).connect(agentController);
 
@@ -144,7 +152,7 @@ public class AgentWebSocketClientControllerTest {
 
     @Test
     public void processSetCookieAction() throws IOException, InterruptedException {
-        agentController = createAgentController();
+
         agentController.init();
 
         agentController.process(new Message(Action.setCookie, MessageEncoding.encodeData("cookie")));
@@ -155,7 +163,7 @@ public class AgentWebSocketClientControllerTest {
     @Test
     public void processAssignWorkAction() throws IOException, InterruptedException {
         ArgumentCaptor<Message> argumentCaptor = ArgumentCaptor.forClass(Message.class);
-        agentController = createAgentController();
+
         agentController.init();
         agentController.process(new Message(Action.assignWork, MessageEncoding.encodeWork(new SleepWork("work1", 0))));
         assertThat(agentController.getAgentRuntimeInfo().getRuntimeStatus(), is(AgentRuntimeStatus.Idle));
@@ -175,7 +183,7 @@ public class AgentWebSocketClientControllerTest {
         env.set(SystemEnvironment.WEBSOCKET_ENABLED, true);
         env.set(SystemEnvironment.CONSOLE_LOGS_THROUGH_WEBSOCKET_ENABLED, true);
         ArgumentCaptor<Message> argumentCaptor = ArgumentCaptor.forClass(Message.class);
-        agentController = createAgentController();
+
         agentController.init();
         agentController.process(new Message(Action.assignWork, MessageEncoding.encodeWork(new SleepWork("work1", 0))));
         assertThat(agentController.getAgentRuntimeInfo().getRuntimeStatus(), is(AgentRuntimeStatus.Idle));
@@ -203,7 +211,7 @@ public class AgentWebSocketClientControllerTest {
         when(systemEnvironment.isConsoleLogsThroughWebsocketEnabled()).thenReturn(true);
         when(agentRegistry.uuid()).thenReturn(agentUuid);
 
-        agentController = createAgentController();
+
         agentController.init();
         BuildSettings build = new BuildSettings();
         build.setBuildId("b001");
@@ -251,7 +259,7 @@ public class AgentWebSocketClientControllerTest {
         when(httpResponse.getStatusLine()).thenReturn(new BasicStatusLine(HttpVersion.HTTP_1_1, 200, "OK"));
         when(httpService.execute(any())).thenReturn(httpResponse);
 
-        agentController = createAgentController();
+
         agentController.init();
         BuildSettings build = new BuildSettings();
         build.setBuildId("b001");
@@ -292,7 +300,7 @@ public class AgentWebSocketClientControllerTest {
     public void processCancelBuildCommandBuild() throws IOException, InterruptedException {
         ArgumentCaptor<Message> argumentCaptor = ArgumentCaptor.forClass(Message.class);
 
-        agentController = createAgentController();
+
         agentController.init();
         agentController.getAgentRuntimeInfo().setSupportsBuildCommandProtocol(true);
         final BuildSettings build = new BuildSettings();
@@ -341,7 +349,7 @@ public class AgentWebSocketClientControllerTest {
 
     @Test
     public void processCancelJobAction() throws IOException, InterruptedException {
-        agentController = createAgentController();
+
         agentController.init();
         final SleepWork sleep1secWork = new SleepWork("work1", MAX_WAIT_IN_TEST);
 
@@ -382,7 +390,7 @@ public class AgentWebSocketClientControllerTest {
     @Test
     public void processReregisterAction() throws IOException, InterruptedException {
         when(agentRegistry.uuid()).thenReturn(agentUuid);
-        agentController = createAgentController();
+
         agentController.init();
         agentController.process(new Message(Action.reregister));
 
@@ -392,7 +400,6 @@ public class AgentWebSocketClientControllerTest {
 
     @Test
     public void shouldCancelPreviousRunningJobIfANewAssignWorkMessageIsReceived() throws IOException, InterruptedException {
-        agentController = createAgentController();
         agentController.init();
         final SleepWork work1 = new SleepWork("work1", MAX_WAIT_IN_TEST);
         Thread work1Thread = new Thread(new Runnable() {
@@ -416,7 +423,7 @@ public class AgentWebSocketClientControllerTest {
     }
 
     private AgentWebSocketClientController createAgentController() {
-        AgentWebSocketClientController controller = new AgentWebSocketClientController(
+        return new AgentWebSocketClientController(
                 loopServer,
                 artifactsManipulator,
                 sslInfrastructureService,
@@ -431,7 +438,6 @@ public class AgentWebSocketClientControllerTest {
                 artifactExtension,
                 null,
                 httpService,
-                webSocketClientHandler, webSocketSessionHandler, null);
-        return controller;
+                webSocketClientHandler, webSocketSessionHandler, null, serverBinaryDownloader);
     }
 }

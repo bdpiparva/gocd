@@ -16,6 +16,7 @@
 
 package com.thoughtworks.go.agent;
 
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.agent.statusapi.AgentHealthHolder;
@@ -32,6 +33,7 @@ import com.thoughtworks.go.remote.BuildRepositoryRemote;
 import com.thoughtworks.go.util.HttpService;
 import com.thoughtworks.go.util.SubprocessLogger;
 import com.thoughtworks.go.util.SystemEnvironment;
+import com.thoughtworks.go.util.URLService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,7 @@ public class AgentControllerFactory {
     private static final Logger LOG = LoggerFactory.getLogger(AgentControllerFactory.class);
     private final AgentHealthHolder agentHealthHolder;
     private final PluginJarLocationMonitor pluginJarLocationMonitor;
+    private final URLService urlService;
 
     @Autowired
     public AgentControllerFactory(
@@ -78,7 +81,8 @@ public class AgentControllerFactory {
             WebSocketClientHandler webSocketClientHandler,
             WebSocketSessionHandler sessionHandler,
             AgentHealthHolder agentHealthHolder,
-            PluginJarLocationMonitor pluginJarLocationMonitor) {
+            PluginJarLocationMonitor pluginJarLocationMonitor,
+            URLService urlService) {
         this.server = server;
         this.manipulator = manipulator;
         this.pluginManager = pluginManager;
@@ -97,9 +101,11 @@ public class AgentControllerFactory {
         this.sessionHandler = sessionHandler;
         this.agentHealthHolder = agentHealthHolder;
         this.pluginJarLocationMonitor = pluginJarLocationMonitor;
+        this.urlService = urlService;
     }
 
     public AgentController createInstance() {
+        final ServerBinaryDownloader serverBinaryDownloader = new ServerBinaryDownloader(urlService, systemEnvironment.getRootCertFile(), systemEnvironment.getAgentSslVerificationMode());
         if (systemEnvironment.isWebsocketsForAgentsEnabled()) {
             LOG.info("Connecting to server using WebSockets");
             return new AgentWebSocketClientController(
@@ -119,7 +125,8 @@ public class AgentControllerFactory {
                     httpService,
                     webSocketClientHandler,
                     sessionHandler,
-                    agentHealthHolder);
+                    agentHealthHolder,
+                    serverBinaryDownloader);
         } else {
             LOG.info("Connecting to server using HTTP(S)");
             return new AgentHTTPClientController(
@@ -137,7 +144,8 @@ public class AgentControllerFactory {
                     artifactExtension,
                     pluginRequestProcessorRegistry,
                     agentHealthHolder,
-                    pluginJarLocationMonitor);
+                    pluginJarLocationMonitor,
+                    serverBinaryDownloader);
         }
     }
 }

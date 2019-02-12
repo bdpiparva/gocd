@@ -16,6 +16,7 @@
 
 package com.thoughtworks.go.agent;
 
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.agent.statusapi.AgentHealthHolder;
@@ -81,8 +82,8 @@ public class AgentWebSocketClientController extends AgentController {
                                           PackageRepositoryExtension packageRepositoryExtension, SCMExtension scmExtension,
                                           TaskExtension taskExtension, ArtifactExtension artifactExtension, PluginRequestProcessorRegistry pluginRequestProcessorRegistry, HttpService httpService,
                                           WebSocketClientHandler webSocketClientHandler, WebSocketSessionHandler webSocketSessionHandler,
-                                          AgentHealthHolder agentHealthHolder) {
-        super(sslInfrastructureService, systemEnvironment, agentRegistry, pluginManager, subprocessLogger, agentUpgradeService, agentHealthHolder);
+                                          AgentHealthHolder agentHealthHolder, ServerBinaryDownloader downloader) {
+        super(sslInfrastructureService, systemEnvironment, agentRegistry, pluginManager, subprocessLogger, agentUpgradeService, agentHealthHolder, downloader);
         this.server = server;
         this.manipulator = manipulator;
         this.packageRepositoryExtension = packageRepositoryExtension;
@@ -132,6 +133,7 @@ public class AgentWebSocketClientController extends AgentController {
                 cancelJobIfThereIsOneRunning();
                 Work work = MessageEncoding.decodeWork(message.getData());
                 LOG.debug("Got work from server: [{}]", work.description());
+                downloadTFSJarIfRequired(work);
                 runner = new JobRunner();
                 try {
                     runner.run(work, new AgentWorkContext(agentIdentifier(),
@@ -171,10 +173,10 @@ public class AgentWebSocketClientController extends AgentController {
             buildConsole = new ConsoleOutputWebsocketTransmitter(webSocketSessionHandler, buildSettings.getBuildId());
         } else {
             buildConsole = new ConsoleOutputTransmitter(
-                new RemoteConsoleAppender(
-                    urlService.prefixPartialUrl(buildSettings.getConsoleUrl()),
-                    httpService,
-                    buildSettings.getConsoleLogCharset())
+                    new RemoteConsoleAppender(
+                            urlService.prefixPartialUrl(buildSettings.getConsoleUrl()),
+                            httpService,
+                            buildSettings.getConsoleLogCharset())
             );
         }
 

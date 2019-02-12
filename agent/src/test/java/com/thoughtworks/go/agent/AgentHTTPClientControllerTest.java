@@ -16,6 +16,7 @@
 
 package com.thoughtworks.go.agent;
 
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.config.AgentRegistry;
@@ -42,6 +43,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -84,14 +86,17 @@ public class AgentHTTPClientControllerTest {
     @Mock
     private ArtifactExtension artifactExtension;
     @Mock
+    private ServerBinaryDownloader serverBinaryDownloader;
+    @Mock
     private PluginJarLocationMonitor pluginJarLocationMonitor;
     private String agentUuid = "uuid";
     private AgentIdentifier agentIdentifier;
     private AgentHTTPClientController agentController;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         agentIdentifier = new AgentIdentifier(getLocalhostName(), getFirstLocalNonLoopbackIpAddress(), agentUuid);
+        agentController = createAgentController();
     }
 
     @After
@@ -100,8 +105,7 @@ public class AgentHTTPClientControllerTest {
     }
 
     @Test
-    public void shouldSetPluginManagerReference() throws Exception {
-        agentController = createAgentController();
+    public void shouldSetPluginManagerReference() {
         assertThat(PluginManagerReference.reference().getPluginManager(), is(pluginManager));
     }
 
@@ -110,7 +114,7 @@ public class AgentHTTPClientControllerTest {
         when(loopServer.getWork(any(AgentRuntimeInfo.class))).thenReturn(work);
         when(agentRegistry.uuid()).thenReturn(agentUuid);
         when(pluginJarLocationMonitor.hasRunAtLeastOnce()).thenReturn(true);
-        agentController = createAgentController();
+
         agentController.init();
         agentController.ping();
         agentController.work();
@@ -122,7 +126,7 @@ public class AgentHTTPClientControllerTest {
     public void shouldNotRetrieveWorkIfPluginMonitorHasNotRun() throws IOException {
         when(agentRegistry.uuid()).thenReturn(agentUuid);
         when(pluginJarLocationMonitor.hasRunAtLeastOnce()).thenReturn(false);
-        agentController = createAgentController();
+
         agentController.init();
         agentController.ping();
         agentController.work();
@@ -131,7 +135,6 @@ public class AgentHTTPClientControllerTest {
 
     @Test
     public void shouldRetrieveCookieIfNotPresent() throws Exception {
-        agentController = createAgentController();
         agentController.init();
 
         when(loopServer.getCookie(any(AgentIdentifier.class), eq(agentController.getAgentRuntimeInfo().getLocation()))).thenReturn("cookie");
@@ -147,7 +150,7 @@ public class AgentHTTPClientControllerTest {
     public void shouldNotTellServerWorkIsCompletedWhenThereIsNoWork() throws Exception {
         when(loopServer.getWork(any(AgentRuntimeInfo.class))).thenReturn(work);
         when(agentRegistry.uuid()).thenReturn(agentUuid);
-        agentController = createAgentController();
+
         agentController.init();
         agentController.retrieveWork();
         verify(work).doWork(any(EnvironmentVariableContext.class), any(AgentWorkContext.class));
@@ -160,7 +163,7 @@ public class AgentHTTPClientControllerTest {
         AgentRegistry agentRegistry = mock(AgentRegistry.class);
         agentController = new AgentHTTPClientController(loopServer, artifactsManipulator, sslInfrastructureService,
                 agentRegistry, agentUpgradeService, subprocessLogger, systemEnvironment, pluginManager,
-                packageRepositoryExtension, scmExtension, taskExtension, artifactExtension, null, null, pluginJarLocationMonitor);
+                packageRepositoryExtension, scmExtension, taskExtension, artifactExtension, null, null, pluginJarLocationMonitor, serverBinaryDownloader);
         agentController.init();
         verify(subprocessLogger).registerAsExitHook("Following processes were alive at shutdown: ");
     }
@@ -170,7 +173,6 @@ public class AgentHTTPClientControllerTest {
         when(agentRegistry.uuid()).thenReturn(agentUuid);
         when(sslInfrastructureService.isRegistered()).thenReturn(false);
 
-        agentController = createAgentController();
         agentController.init();
         agentController.ping();
         verify(sslInfrastructureService).createSslInfrastructure();
@@ -180,11 +182,27 @@ public class AgentHTTPClientControllerTest {
     public void shouldPingIfAfterRegistered() throws Exception {
         when(agentRegistry.uuid()).thenReturn(agentUuid);
         when(sslInfrastructureService.isRegistered()).thenReturn(true);
-        agentController = createAgentController();
+
         agentController.init();
         agentController.ping();
         verify(sslInfrastructureService).createSslInfrastructure();
         verify(loopServer).ping(any(AgentRuntimeInfo.class));
+    }
+
+    @Test
+    public void shouldCheckForTFSJarDownload() throws IOException {
+        when(loopServer.getWork(any(AgentRuntimeInfo.class))).thenReturn(work);
+        when(agentRegistry.uuid()).thenReturn(agentUuid);
+        when(pluginJarLocationMonitor.hasRunAtLeastOnce()).thenReturn(true);
+
+        final AgentHTTPClientController spy = spy(agentController);
+        spy.init();
+        spy.ping();
+        spy.work();
+
+        final InOrder inOrder = inOrder(work, spy);
+        inOrder.verify(spy).downloadTFSJarIfRequired(work);
+        inOrder.verify(work).doWork(any(EnvironmentVariableContext.class), any(AgentWorkContext.class));
     }
 
     private AgentHTTPClientController createAgentController() {
@@ -201,6 +219,6 @@ public class AgentHTTPClientControllerTest {
                 packageRepositoryExtension,
                 scmExtension,
                 taskExtension,
-                artifactExtension, null, null, pluginJarLocationMonitor);
+                artifactExtension, null, null, pluginJarLocationMonitor, serverBinaryDownloader);
     }
 }

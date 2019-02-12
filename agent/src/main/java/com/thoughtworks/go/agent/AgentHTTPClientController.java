@@ -16,6 +16,7 @@
 
 package com.thoughtworks.go.agent;
 
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.agent.statusapi.AgentHealthHolder;
@@ -70,8 +71,9 @@ public class AgentHTTPClientController extends AgentController {
                                      ArtifactExtension artifactExtension,
                                      PluginRequestProcessorRegistry pluginRequestProcessorRegistry,
                                      AgentHealthHolder agentHealthHolder,
-                                     PluginJarLocationMonitor pluginJarLocationMonitor) {
-        super(sslInfrastructureService, systemEnvironment, agentRegistry, pluginManager, subprocessLogger, agentUpgradeService, agentHealthHolder);
+                                     PluginJarLocationMonitor pluginJarLocationMonitor,
+                                     ServerBinaryDownloader serverBinaryDownloader) {
+        super(sslInfrastructureService, systemEnvironment, agentRegistry, pluginManager, subprocessLogger, agentUpgradeService, agentHealthHolder, serverBinaryDownloader);
         this.packageRepositoryExtension = packageRepositoryExtension;
         this.scmExtension = scmExtension;
         this.taskExtension = taskExtension;
@@ -141,6 +143,7 @@ public class AgentHTTPClientController extends AgentController {
             }
             runner = new JobRunner();
             final AgentWorkContext agentWorkContext = new AgentWorkContext(agentIdentifier, server, manipulator, getAgentRuntimeInfo(), packageRepositoryExtension, scmExtension, taskExtension, artifactExtension, pluginRequestProcessorRegistry);
+            downloadTFSJarIfRequired(work);
             runner.run(work, agentWorkContext);
         } catch (UnregisteredAgentException e) {
             LOG.warn("[Agent Loop] Invalid agent certificate with fingerprint {}. Registering with server on next iteration.", e.getUuid());
@@ -149,5 +152,4 @@ public class AgentHTTPClientController extends AgentController {
             getAgentRuntimeInfo().idle();
         }
     }
-
 }

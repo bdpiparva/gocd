@@ -16,6 +16,8 @@
 
 package com.thoughtworks.go.agent;
 
+import com.thoughtworks.go.agent.launcher.DownloadableFile;
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.agent.statusapi.AgentHealthHolder;
@@ -25,34 +27,33 @@ import com.thoughtworks.go.plugin.access.pluggabletask.TaskExtension;
 import com.thoughtworks.go.plugin.access.scm.SCMExtension;
 import com.thoughtworks.go.plugin.infra.PluginManager;
 import com.thoughtworks.go.publishers.GoArtifactsManipulator;
-import com.thoughtworks.go.remote.AgentIdentifier;
 import com.thoughtworks.go.remote.BuildRepositoryRemote;
-import com.thoughtworks.go.remote.work.Work;
-import com.thoughtworks.go.util.*;
+import com.thoughtworks.go.remote.work.*;
 import com.thoughtworks.go.util.HttpService;
 import com.thoughtworks.go.util.SubprocessLogger;
 import com.thoughtworks.go.util.SystemEnvironment;
+import com.thoughtworks.go.util.TestingClock;
+import com.thoughtworks.go.work.FakeWork;
+import com.thoughtworks.go.work.SleepWork;
 import org.apache.http.client.HttpClient;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Date;
 
-import static com.thoughtworks.go.util.SystemUtil.getFirstLocalNonLoopbackIpAddress;
-import static com.thoughtworks.go.util.SystemUtil.getLocalhostName;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.inOrder;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+import static org.mockito.MockitoAnnotations.initMocks;
 
-@RunWith(MockitoJUnitRunner.class)
 public class AgentControllerTest {
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
@@ -82,9 +83,9 @@ public class AgentControllerTest {
     private HttpService httpService;
     @Mock
     private HttpClient httpClient;
+    @Mock
+    private ServerBinaryDownloader serverBinaryDownloader;
     private AgentController agentController;
-
-    private String agentUuid = "uuid";
 
     @Mock
     private AgentRegistry agentRegistry;
@@ -92,31 +93,28 @@ public class AgentControllerTest {
     private final int pingInterval = 5000;
     private AgentHealthHolder agentHealthHolder = new AgentHealthHolder(clock, pingInterval);
 
-    private AgentIdentifier agentIdentifier;
-
-    @Before
-    public void setUp() throws Exception {
-        agentIdentifier = new AgentIdentifier(getLocalhostName(), getFirstLocalNonLoopbackIpAddress(), agentUuid);
+    @BeforeEach
+    void setUp() {
+        initMocks(this);
+        agentController = createAgentController();
     }
 
     @Test
-    public void shouldReturnTrueIfCausedBySecurity() throws Exception {
+    void shouldReturnTrueIfCausedBySecurity() {
         Exception exception = new Exception(new RuntimeException(new GeneralSecurityException()));
 
-        agentController = createAgentController();
-        assertTrue(agentController.isCausedBySecurity(exception));
+        assertThat(agentController.isCausedBySecurity(exception)).isTrue();
     }
 
     @Test
-    public void shouldReturnFalseIfNotCausedBySecurity() throws Exception {
+    void shouldReturnFalseIfNotCausedBySecurity() {
         Exception exception = new Exception(new IOException());
-        agentController = createAgentController();
-        assertFalse(agentController.isCausedBySecurity(exception));
+
+        assertThat(agentController.isCausedBySecurity(exception)).isFalse();
     }
 
     @Test
-    public void shouldUpgradeAgentBeforeAgentRegistration() throws Exception {
-        agentController = createAgentController();
+    void shouldUpgradeAgentBeforeAgentRegistration() throws Exception {
         InOrder inOrder = inOrder(agentUpgradeService, sslInfrastructureService);
         agentController.loop();
         inOrder.verify(agentUpgradeService).checkForUpgradeAndExtraProperties();
@@ -124,23 +122,55 @@ public class AgentControllerTest {
     }
 
     @Test
-    public void remembersLastPingTime() throws Exception {
+    void remembersLastPingTime() {
         // initial time
         Date now = new Date(42);
         clock.setTime(now);
-        agentController = createAgentController();
         agentController.pingSuccess();
 
-        assertFalse(agentHealthHolder.hasLostContact());
+        assertThat(agentHealthHolder.hasLostContact()).isFalse();
         clock.addMillis(pingInterval);
-        assertFalse(agentHealthHolder.hasLostContact());
+        assertThat(agentHealthHolder.hasLostContact()).isFalse();
         clock.addMillis(pingInterval);
-        assertTrue(agentHealthHolder.hasLostContact());
+        assertThat(agentHealthHolder.hasLostContact()).isTrue();
+    }
+
+    @Nested
+    class DownloadTFSJarIfRequired {
+        @ParameterizedTest
+        @ValueSource(classes = {Work.class, DeniedAgentWork.class, FakeWork.class, NoWork.class, SleepWork.class, UnregisteredAgentWork.class})
+        void shouldNotDownloadJarWhenWorkIsNotBuildWork(Class<? extends Work> workImplementers) {
+            final Work work = mock(workImplementers);
+
+            agentController.downloadTFSJarIfRequired(work);
+
+            verifyZeroInteractions(serverBinaryDownloader);
+        }
+
+        @Test
+        void shouldNotDownloadJarWhenBuildWorkHasNoTFSMaterial() {
+            final BuildWork work = mock(BuildWork.class);
+            when(work.hasTFSMaterial()).thenReturn(false);
+
+            agentController.downloadTFSJarIfRequired(work);
+
+            verifyZeroInteractions(serverBinaryDownloader);
+        }
+
+        @Test
+        void shouldDownloadJarOnlyWhenBuildWorkHasAtLeaseOneTFSMaterial() {
+            final BuildWork work = mock(BuildWork.class);
+            when(work.hasTFSMaterial()).thenReturn(true);
+
+            agentController.downloadTFSJarIfRequired(work);
+
+            verify(serverBinaryDownloader).downloadIfNecessary(DownloadableFile.TFS_IMPL);
+        }
     }
 
     private AgentController createAgentController() {
         return new AgentController(sslInfrastructureService, systemEnvironment, agentRegistry, pluginManager,
-                subprocessLogger, agentUpgradeService, agentHealthHolder) {
+                subprocessLogger, agentUpgradeService, agentHealthHolder, serverBinaryDownloader) {
             @Override
             public void ping() {
 

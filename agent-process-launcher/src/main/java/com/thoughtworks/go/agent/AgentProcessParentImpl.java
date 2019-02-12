@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.join;
@@ -63,10 +62,7 @@ public class AgentProcessParentImpl implements AgentProcessParent {
             ServerBinaryDownloader pluginZipDownloader = new ServerBinaryDownloader(urlGenerator, rootCertFile, sslVerificationMode);
             pluginZipDownloader.downloadIfNecessary(DownloadableFile.AGENT_PLUGINS);
 
-            ServerBinaryDownloader tfsImplDownloader = new ServerBinaryDownloader(urlGenerator, rootCertFile, sslVerificationMode);
-            tfsImplDownloader.downloadIfNecessary(DownloadableFile.TFS_IMPL);
-
-            command = agentInvocationCommand(agentDownloader.getMd5(), launcherMd5, pluginZipDownloader.getMd5(), tfsImplDownloader.getMd5(),
+            command = agentInvocationCommand(agentDownloader.getMd5(), launcherMd5, pluginZipDownloader.getMd5(),
                     env, context, agentDownloader.getSslPort(), agentDownloader.getExtraProperties());
             LOG.info("Launching Agent with command: {}", join(command, " "));
 
@@ -118,7 +114,7 @@ public class AgentProcessParentImpl implements AgentProcessParent {
         }
     }
 
-    private String[] agentInvocationCommand(String agentMD5, String launcherMd5, String agentPluginsZipMd5, String tfsImplMd5, Map<String, String> env, Map context,
+    private String[] agentInvocationCommand(String agentMD5, String launcherMd5, String agentPluginsZipMd5, Map<String, String> env, Map context,
                                             @Deprecated String sslPort, // the port is kept for backward compatibility to ensure that old bootstrappers are able to launch new agents
                                             Map<String, String> extraProperties) {
         AgentBootstrapperBackwardCompatibility backwardCompatibility = backwardCompatibility(context);
@@ -141,7 +137,6 @@ public class AgentProcessParentImpl implements AgentProcessParent {
         commandSnippets.add(property(GoConstants.AGENT_PLUGINS_MD5, agentPluginsZipMd5));
         commandSnippets.add(property(GoConstants.AGENT_JAR_MD5, agentMD5));
         commandSnippets.add(property(GoConstants.GIVEN_AGENT_LAUNCHER_JAR_MD5, launcherMd5));
-        commandSnippets.add(property(GoConstants.TFS_IMPL_MD5, tfsImplMd5));
         commandSnippets.add("-jar");
 
         commandSnippets.add(Downloader.AGENT_BINARY);

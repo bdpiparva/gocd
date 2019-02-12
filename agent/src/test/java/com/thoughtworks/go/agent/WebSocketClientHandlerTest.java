@@ -17,6 +17,7 @@
 package com.thoughtworks.go.agent;
 
 import com.thoughtworks.go.agent.common.ssl.GoAgentServerWebSocketClientBuilder;
+import com.thoughtworks.go.agent.launcher.ServerBinaryDownloader;
 import com.thoughtworks.go.agent.service.AgentUpgradeService;
 import com.thoughtworks.go.agent.service.SslInfrastructureService;
 import com.thoughtworks.go.config.AgentRegistry;
@@ -49,10 +50,12 @@ public class WebSocketClientHandlerTest {
     private WebSocketClientHandler webSocketClientHandler;
     private GoAgentServerWebSocketClientBuilder builder;
     private URLService urlService;
+    private ServerBinaryDownloader serverBinaryDownloader;
     private Future session;
 
     @Before
     public void setUp() throws Exception {
+        serverBinaryDownloader = mock(ServerBinaryDownloader.class);
         builder = mock(GoAgentServerWebSocketClientBuilder.class);
         when(builder.build()).thenReturn(new WebSocketClientStub());
 
@@ -95,7 +98,8 @@ public class WebSocketClientHandlerTest {
                 mock(HttpService.class),
                 mock(WebSocketClientHandler.class),
                 mock(WebSocketSessionHandler.class),
-                null);
+                null,
+                serverBinaryDownloader);
     }
 
     class WebSocketClientStub extends WebSocketClient {
