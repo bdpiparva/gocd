@@ -102,7 +102,7 @@ public class AgentControllerFactory {
     public AgentController createInstance() {
         if (systemEnvironment.isWebsocketsForAgentsEnabled()) {
             LOG.info("Connecting to server using WebSockets");
-            return new AgentWebSocketClientController(
+            return new com.thoughtworks.go.agent.AgentWebSocketClientController(
                     server,
                     manipulator,
                     sslInfrastructureService,

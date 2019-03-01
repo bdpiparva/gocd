@@ -20,8 +20,7 @@
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:aop="http://www.springframework.org/schema/aop"
        xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="
-        http://www.springframework.org/schema/beans
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
         http://www.springframework.org/schema/context
         http://www.springframework.org/schema/context/spring-context-2.5.xsd
@@ -30,6 +29,7 @@
 
   <context:annotation-config/>
   <import resource="velocity-config.xml"/>
+  <context:component-scan base-package="com.thoughtworks.go.websocket"/>
   <context:component-scan base-package="com.thoughtworks.go.addon"/>
   <context:component-scan base-package="com.thoughtworks.go.util"/>
   <context:component-scan base-package="com.thoughtworks.go.server.controller"/>

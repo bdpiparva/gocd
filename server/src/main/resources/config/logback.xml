@@ -34,7 +34,8 @@
     </encoder>
 
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-      <fileNamePattern>${gocd.server.log.dir:-${GO_SERVER_LOG_DIR:-logs}}/go-server.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+      <fileNamePattern>${gocd.server.log.dir:-${GO_SERVER_LOG_DIR:-logs}}/go-server.log.%d{yyyy-MM-dd}.%i.gz
+      </fileNamePattern>
       <maxFileSize>${gocd.server.logback.defaultRollingFileAppender.rotation.maxFileSize:-10 MB}</maxFileSize>
       <maxHistory>${gocd.server.logback.defaultRollingFileAppender.rotation.maxHistory:-50}</maxHistory>
       <totalSizeCap>${gocd.server.logback.defaultRollingFileAppender.rotation.totalSizeCap:-512 MB}</totalSizeCap>
@@ -50,7 +51,8 @@
     </encoder>
 
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-      <fileNamePattern>${gocd.server.log.dir:-${GO_SERVER_LOG_DIR:-logs}}/web-requests.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+      <fileNamePattern>${gocd.server.log.dir:-${GO_SERVER_LOG_DIR:-logs}}/web-requests.log.%d{yyyy-MM-dd}.%i.gz
+      </fileNamePattern>
       <maxFileSize>${gocd.server.logback.webRequestRollingFileAppender.rotation.maxFileSize:-10 MB}</maxFileSize>
       <maxHistory>${gocd.server.logback.webRequestRollingFileAppender.rotation.maxHistory:-50}</maxHistory>
       <totalSizeCap>${gocd.server.logback.webRequestRollingFileAppender.rotation.totalSizeCap:-512 MB}</totalSizeCap>
@@ -66,7 +68,8 @@
     </encoder>
 
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-      <fileNamePattern>${gocd.server.log.dir:-${GO_SERVER_LOG_DIR:-logs}}/go-server-perf.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+      <fileNamePattern>${gocd.server.log.dir:-${GO_SERVER_LOG_DIR:-logs}}/go-server-perf.log.%d{yyyy-MM-dd}.%i.gz
+      </fileNamePattern>
       <maxFileSize>${gocd.server.logback.performanceRollingFileAppender.rotation.maxFileSize:-10 MB}</maxFileSize>
       <maxHistory>${gocd.server.logback.performanceRollingFileAppender.rotation.maxHistory:-50}</maxHistory>
       <totalSizeCap>${gocd.server.logback.performanceRollingFileAppender.rotation.totalSizeCap:-512 MB}</totalSizeCap>
@@ -79,6 +82,7 @@
 
   <logger name="com.thoughtworks.go" level="INFO"/>
   <logger name="com.thoughtworks.go.server.Rails" level="WARN"/>
+  <logger name="org.springframework.web.socket" level="DEBUG"/>
 
   <!-- make sure this is the last line in the config -->
   <include optional="true" file="${cruise.config.dir:-config}/logback-include.xml"/>

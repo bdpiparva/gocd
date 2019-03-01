@@ -174,15 +174,15 @@ project.ext.rails.testExternalPluginsDir = project.file("${project.rails.testPlu
 project.ext.rails.testPluginsWorkDir = project.file("${project.rails.testPluginsDir}/work")
 
 project.ext.railsSystemProperties = [
-  'always.reload.config.file'     : true,
-  'cruise.i18n.cache.life'        : 0,
-  'cruise.config.dir'             : project.rails.testConfigDir,
-  'cruise.database.dir'           : project.rails.testH2DbDir,
-  'plugins.go.provided.path'      : project.rails.testBundledPluginsDir,
-  'plugins.external.provided.path': project.rails.testExternalPluginsDir,
-  'plugins.work.path'             : project.rails.testPluginsWorkDir,
-  'rails.use.compressed.js'       : false,
-  'go.enforce.server.immutability': 'N',
+  'always.reload.config.file'                    : true,
+  'cruise.i18n.cache.life'                       : 0,
+  'cruise.config.dir'                            : project.rails.testConfigDir,
+  'cruise.database.dir'                          : project.rails.testH2DbDir,
+  'plugins.go.provided.path'                     : project.rails.testBundledPluginsDir,
+  'plugins.external.provided.path'               : project.rails.testExternalPluginsDir,
+  'plugins.work.path'                            : project.rails.testPluginsWorkDir,
+  'rails.use.compressed.js'                      : false,
+  'go.enforce.server.immutability'               : 'N',
   'jdk.net.URLClassPath.disableClassPathURLCheck': true
 ]
 
@@ -242,6 +242,7 @@ dependencies {
   compile project(':plugin-infra:go-plugin-access')
   compile project(':common')
   compile project(':rack_hack')
+  compile project(':websocket')
 
   copyOnly project(path: ':tfs-impl:tfs-impl-14', configuration: 'fatJarConfig')
   copyOnly project(path: ':agent', configuration: 'fatJarConfig')
@@ -272,7 +273,13 @@ dependencies {
   }
 
   compile group: 'org.jruby', name: 'jruby-complete', version: project.versions.jruby
-  compile group: 'org.jruby.rack', name: 'jruby-rack', version: versions.rack
+  compile group: 'org.jruby.rack', name: 'jruby-rack', version: project.versions.rack
+
+  compile group: 'org.springframework', name: 'spring-messaging', version: project.versions.spring
+  compile group: 'org.springframework', name: 'spring-websocket', version: project.versions.spring
+  compile group: 'io.projectreactor', name: 'reactor-core', version: '2.0.8.RELEASE'
+  compile group: 'io.projectreactor', name: 'reactor-net', version: '2.0.8.RELEASE'
+  compile group: 'io.netty', name: 'netty-all', version: '4.1.33.Final'
 
   compile group: 'org.springframework', name: 'spring-orm', version: project.versions.spring
   compile group: 'org.springframework', name: 'spring-web', version: project.versions.spring

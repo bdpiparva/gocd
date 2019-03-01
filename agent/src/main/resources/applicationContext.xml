@@ -27,6 +27,7 @@
   <import resource="classpath:applicationContext-plugin-infra.xml"/>
   <context:annotation-config/>
   <context:component-scan base-package="com.thoughtworks.go.agent.statusapi"/>
+  <context:component-scan base-package="com.thoughtworks.go.agent.websocket"/>
 
   <!-- Loads the System Properties -->
   <bean id="propertyConfigurer"
