@@ -14,24 +14,21 @@
  * limitations under the License.
  */
 
-package com.thoughtworks.go.config;
+package com.thoughtworks.go.config.rules;
 
-import java.util.List;
+import com.thoughtworks.go.config.ConfigTag;
 
-public class RulesValidationContext  {
-    private final List<String> allowedActions;
-    private final List<String> allowedTypes;
-
-    protected RulesValidationContext(List<String> allowedActions, List<String> allowedTypes) {
-        this.allowedActions = allowedActions;
-        this.allowedTypes = allowedTypes;
+@ConfigTag("allow")
+public class Allow extends AbstractDirective {
+    public Allow() {
+        super();
     }
 
-    public List<String> getAllowedActions() {
-        return allowedActions;
+    public Allow(String action, String type, String resource) {
+        super(action, type, resource);
     }
 
-    public List<String> getAllowedTypes() {
-        return allowedTypes;
-    }
 }
+
+
+

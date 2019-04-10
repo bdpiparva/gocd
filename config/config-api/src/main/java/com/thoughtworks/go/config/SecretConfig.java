@@ -16,6 +16,9 @@
 
 package com.thoughtworks.go.config;
 
+import com.thoughtworks.go.config.rules.Rules;
+import com.thoughtworks.go.config.rules.RulesAware;
+import com.thoughtworks.go.config.rules.RulesValidationContext;
 import com.thoughtworks.go.domain.config.Configuration;
 import com.thoughtworks.go.domain.config.ConfigurationProperty;
 import com.thoughtworks.go.plugin.access.secrets.SecretsMetadataStore;

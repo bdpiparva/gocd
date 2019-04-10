@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-package com.thoughtworks.go.config;
+package com.thoughtworks.go.config.rules;
 
-@ConfigTag("allow")
-public class Allow extends AbstractDirective {
-    public Allow() {
+import com.thoughtworks.go.config.ConfigTag;
+
+@ConfigTag("deny")
+public class Deny extends AbstractDirective {
+    public Deny() {
         super();
     }
 
-    public Allow(String action, String type, String resource) {
+    public Deny(String action, String type, String resource) {
         super(action, type, resource);
     }
-
 }
-
-
-
