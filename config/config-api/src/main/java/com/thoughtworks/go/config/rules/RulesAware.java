@@ -22,4 +22,6 @@ public interface RulesAware {
     List<String> allowedActions();
 
     List<String> allowedTypes();
+
+    Rules rules();
 }

@@ -17,10 +17,101 @@
 package com.thoughtworks.go.config.rules;
 
 import com.thoughtworks.go.config.Directive;
+import com.thoughtworks.go.config.PipelineConfigs;
+import com.thoughtworks.go.config.StageConfig;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DenyTest extends AbstractDirectiveTest {
     //runs the test from AbstractDirectiveTest for this Directive
     Directive getDirective(String action, String type, String resource) {
         return new Deny(action, type, resource);
+    }
+
+    @Nested
+    class apply {
+        @Nested
+        class shouldSkip {
+            @Test
+            void ifActionDoesNotMatch() {
+                final Deny deny = new Deny("refer", null, null);
+
+                assertThat(deny.apply("unknown-action", null, null))
+                        .isEqualTo(Result.SKIP);
+            }
+
+            @Test
+            void ifEntityTypeDoesNotMatch() {
+                final Deny deny = new Deny("refer", "pipeline_group", null);
+
+                assertThat(deny.apply("refer", StageConfig.class, null))
+                        .isEqualTo(Result.SKIP);
+            }
+
+            @Test
+            void ifResourceDoesNotMatch() {
+                final Deny deny = new Deny("refer", "pipeline_group", "group1");
+
+                assertThat(deny.apply("refer", PipelineConfigs.class, "group2"))
+                        .isEqualTo(Result.SKIP);
+            }
+
+            @Test
+            void ifProvidedResourceDoesNotMatchTheWildcardInDirective() {
+                final Deny deny = new Deny("refer", "pipeline_group", "group_*");
+
+                assertThat(deny.apply("refer", PipelineConfigs.class, "groupA"))
+                        .isEqualTo(Result.SKIP);
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"my_group", "grpoup"})
+            void ifResourceDoesNotMatchTheWildCardPatterAndActionAndTypeMatch(String resource) {
+                final Deny deny = new Deny("refer", "pipeline_group", "gro*up*");
+
+                assertThat(deny.apply("refer", PipelineConfigs.class, resource))
+                        .isEqualTo(Result.SKIP);
+            }
+        }
+
+        @Nested
+        class shouldDeny {
+            @Test
+            void ifActionTypeAndResourceMatches() {
+                final Deny deny = new Deny("refer", "pipeline_group", "group_1");
+
+                assertThat(deny.apply("refer", PipelineConfigs.class, "group_1"))
+                        .isEqualTo(Result.DENY);
+            }
+
+            @Test
+            void ifResourceAndTypeMatchesWhenAllActionsAreAllowed() {
+                final Deny deny = new Deny("*", "pipeline_group", "group_1");
+
+                assertThat(deny.apply("any-action-is-allowed", PipelineConfigs.class, "group_1"))
+                        .isEqualTo(Result.DENY);
+            }
+
+            @Test
+            void ifResourceAndActionMatchesWhenAllTypesAreAllowed() {
+                final Deny deny = new Deny("refer", "*", "group_1");
+
+                assertThat(deny.apply("refer", PipelineConfigs.class, "group_1"))
+                        .isEqualTo(Result.DENY);
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"group", "my_group", "group_A", "gro---up", "gro...up"})
+            void ifResourceMatchesTheWildCardAndActionAndTypeMatch(String resource) {
+                final Deny deny = new Deny("refer", "pipeline_group", "*gro*up*");
+
+                assertThat(deny.apply("refer", PipelineConfigs.class, resource))
+                        .isEqualTo(Result.DENY);
+            }
+        }
     }
 }

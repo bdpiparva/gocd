@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package com.thoughtworks.go.config;
+package com.thoughtworks.go.config.rules;
 
-import com.thoughtworks.go.config.rules.Result;
-
-import java.io.Serializable;
-
-@ConfigInterface
-public interface Directive extends Validatable, Serializable {
-    boolean hasErrors();
-
-    Result apply(String refer, Class<? extends Validatable> aClass, String group);
+public enum Result {
+    ALLOW,
+    DENY,
+    SKIP
 }

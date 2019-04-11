@@ -18,6 +18,8 @@ package com.thoughtworks.go.config.rules;
 
 import com.thoughtworks.go.config.*;
 import com.thoughtworks.go.domain.ConfigErrors;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOCase;
 
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +35,7 @@ public abstract class AbstractDirective implements Directive {
     protected String type;
 
     @ConfigValue
-    private String resource;
+    protected String resource;
 
     private final ConfigErrors configErrors = new ConfigErrors();
 
@@ -65,6 +67,29 @@ public abstract class AbstractDirective implements Directive {
         }
 
         return allowedActions.stream().noneMatch(it -> equalsIgnoreCase(it, actionOrType));
+    }
+
+    protected boolean matchesAction(String action) {
+        if (equalsIgnoreCase("*", this.action)) {
+            return true;
+        }
+
+        return equalsIgnoreCase(action, this.action);
+    }
+
+    protected boolean matchesType(Class<? extends Validatable> entityType) {
+        if (equalsIgnoreCase("*", this.type)) {
+            return true;
+        }
+        return entityType == EntityType.fromString(this.type).getEntityType();
+    }
+
+    protected boolean matchesResource(String resource) {
+        if (equalsIgnoreCase("*", this.resource)) {
+            return true;
+        }
+
+        return FilenameUtils.wildcardMatch(resource, this.resource, IOCase.INSENSITIVE);
     }
 
     @Override

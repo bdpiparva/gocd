@@ -124,6 +124,12 @@ public class SecretConfig extends PluginProfile implements RulesAware {
         return allowedTypes;
     }
 
+    //TODO:should we return a clone
+    @Override
+    public Rules rules() {
+        return new Rules(rules);
+    }
+
     @ConfigTag("description")
     public static class Description {
         @ConfigValue

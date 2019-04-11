@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package com.thoughtworks.go.config;
+package com.thoughtworks.go.config.validation;
 
-import com.thoughtworks.go.config.rules.Result;
+import com.thoughtworks.go.config.Directive;
+import com.thoughtworks.go.config.PipelineConfigs;
+import com.thoughtworks.go.config.rules.RulesAware;
 
-import java.io.Serializable;
+public class RulesEnforcer {
+    boolean canRefer(PipelineConfigs pipelineConfigs, RulesAware rulesAware) {
+        if (rulesAware.rules().isEmpty()) {
+            return false;
+        }
 
-@ConfigInterface
-public interface Directive extends Validatable, Serializable {
-    boolean hasErrors();
+        for (Directive directive : rulesAware.rules()) {
+            directive.apply("refer", pipelineConfigs.getClass(), pipelineConfigs.getGroup());
+        }
 
-    Result apply(String refer, Class<? extends Validatable> aClass, String group);
+        return false;
+    }
 }
