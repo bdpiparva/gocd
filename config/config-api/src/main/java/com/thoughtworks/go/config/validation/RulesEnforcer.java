@@ -17,17 +17,22 @@
 package com.thoughtworks.go.config.validation;
 
 import com.thoughtworks.go.config.Directive;
-import com.thoughtworks.go.config.PipelineConfigs;
+import com.thoughtworks.go.config.Validatable;
+import com.thoughtworks.go.config.rules.Result;
 import com.thoughtworks.go.config.rules.RulesAware;
 
 public class RulesEnforcer {
-    boolean canRefer(PipelineConfigs pipelineConfigs, RulesAware rulesAware) {
-        if (rulesAware.rules().isEmpty()) {
+    boolean canRefer(RulesAware rulesAwareEntity, Validatable fromEntity) {
+        if (rulesAwareEntity.rules().isEmpty()) {
             return false;
         }
 
-        for (Directive directive : rulesAware.rules()) {
-            directive.apply("refer", pipelineConfigs.getClass(), pipelineConfigs.getGroup());
+        for (Directive directive : rulesAwareEntity.rules()) {
+            final Result result = directive.apply("refer", fromEntity.getClass(), "");
+            if (result != Result.SKIP) {
+                return result == Result.ALLOW;
+            }
+
         }
 
         return false;

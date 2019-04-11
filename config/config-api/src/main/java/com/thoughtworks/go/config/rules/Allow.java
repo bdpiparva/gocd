@@ -31,7 +31,7 @@ public class Allow extends AbstractDirective {
 
     @Override
     public Result apply(String action, Class<? extends Validatable> entityClass, String resource) {
-        if ((matchesAction(action) && matchesType(entityClass) && matchesResource(resource))) {
+        if (matchesAction(action) && matchesType(entityClass) && matchesResource(resource)) {
             return Result.ALLOW;
         }
         return Result.SKIP;

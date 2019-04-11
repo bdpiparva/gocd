@@ -31,7 +31,7 @@ public class Deny extends AbstractDirective {
 
     @Override
     public Result apply(String action, Class<? extends Validatable> entityClass, String resource) {
-        if ((matchesAction(action) && matchesType(entityClass) && matchesResource(resource))) {
+        if (matchesAction(action) && matchesType(entityClass) && matchesResource(resource)) {
             return Result.DENY;
         }
         return Result.SKIP;

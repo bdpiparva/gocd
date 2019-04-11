@@ -22,6 +22,9 @@ import com.thoughtworks.go.config.materials.Filter;
 import com.thoughtworks.go.config.materials.IgnoredFiles;
 import com.thoughtworks.go.config.materials.ScmMaterialConfig;
 import com.thoughtworks.go.config.materials.git.GitMaterialConfig;
+import com.thoughtworks.go.config.rules.Allow;
+import com.thoughtworks.go.config.rules.EntityType;
+import com.thoughtworks.go.config.rules.Rules;
 import com.thoughtworks.go.security.GoCipher;
 import com.thoughtworks.go.util.ReflectionUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,9 +35,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.thoughtworks.go.helper.PipelineConfigMother.createGroup;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class SvnMaterialConfigTest {
     private SvnMaterialConfig svnMaterialConfig;
@@ -123,114 +126,166 @@ class SvnMaterialConfigTest {
     }
 
     @Nested
-    class ValidateURL {
+    class Validate {
         @Test
-        void shouldEnsureUrlIsNotBlank() {
-            svnMaterialConfig.setUrl("");
-
-            svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
-
-            assertThat(svnMaterialConfig.errors().on(GitMaterialConfig.URL)).isEqualTo("URL cannot be blank");
-        }
-
-        @Test
-        void shouldEnsureUrlIsNotNull() {
-            svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
-
-            assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.URL)).isEqualTo("URL cannot be blank");
-        }
-
-        @Test
-        void shouldEnsureMaterialNameIsValid() {
-            svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
-            assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.MATERIAL_NAME)).isNull();
-
-            svnMaterialConfig.setName(new CaseInsensitiveString(".bad-name-with-dot"));
-            svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
-
-            assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.MATERIAL_NAME)).isEqualTo("Invalid material name '.bad-name-with-dot'. This must be alphanumeric and can contain underscores and periods (however, it cannot start with a period). The maximum allowed length is 255 characters.");
-        }
-
-        @Test
-        void shouldEnsureDestFilePathIsValid() {
-            svnMaterialConfig.setConfigAttributes(Collections.singletonMap(ScmMaterialConfig.FOLDER, "../a"));
-            svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
-
-            assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.FOLDER)).isEqualTo("Dest folder '../a' is not valid. It must be a sub-directory of the working folder.");
-        }
-
-        @Test
-        void shouldFailValidationIfMaterialURLHasSecretParamsConfiguredOtherThanForUsernamePassword() {
-            final ValidationContext validationContext = mockValidationContextForSecretParams();
-            svnMaterialConfig.setUrl("https://user:pass@{{SECRET:[secret_config_id][hostname]}}/foo.git");
-
-            assertThat(svnMaterialConfig.validateTree(validationContext)).isFalse();
-            assertThat(svnMaterialConfig.errors().on("url")).isEqualTo("Only password can be specified as secret params");
-        }
-
-        @Test
-        void shouldFailIfSecretParamConfiguredWithSecretConfigIdWhichDoesNotExist() {
-            final ValidationContext validationContext = mockValidationContextForSecretParams();
-            svnMaterialConfig.setUrl("https://username:{{SECRET:[secret_config_id][pass]}}@host/foo.git");
-
-            assertThat(svnMaterialConfig.validateTree(validationContext)).isFalse();
-            assertThat(svnMaterialConfig.errors().on("url")).isEqualTo("Secret config with ids `secret_config_id` does not exist.");
-        }
-
-        @Test
-        void shouldNotFailIfSecretConfigWithIdPresentForConfiguredSecretParams() {
-            svnMaterialConfig.setUrl("https://bob:{{SECRET:[secret_config_id][username]}}@host/foo.git");
-            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file");
+        void shouldFailIfSecretConfigCannotBeUsedInPipelineGroupWhereCurrentMaterialIsDefined() {
+            svnMaterialConfig.setUrl("svn://username:{{SECRET:[secret_config_id][pass]}}@host/foo");
+            final Rules directives = new Rules(new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_2"));
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
             final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
-
-            assertThat(svnMaterialConfig.validateTree(validationContext)).isTrue();
-            assertThat(svnMaterialConfig.errors().getAll()).isEmpty();
-        }
-    }
-
-    @Nested
-    class ValidatePassword {
-        @BeforeEach
-        void setUp() {
-            svnMaterialConfig.setUrl("foo/bar");
-        }
-
-        @Test
-        void shouldFailIfEncryptedPasswordIsIncorrect() {
-            svnMaterialConfig.setEncryptedPassword("encryptedPassword");
-
-            final boolean validationResult = svnMaterialConfig.validateTree(new ConfigSaveValidationContext(null));
-
-            assertThat(validationResult).isFalse();
-            assertThat(svnMaterialConfig.errors().on("encryptedPassword")).isEqualTo("Encrypted password value for SvnMaterial with url 'foo/bar' is invalid. This usually happens when the cipher text is modified to have an invalid value.");
-        }
-
-        @Test
-        void shouldPassIfPasswordIsNotSpecifiedAsSecretParams() {
-            svnMaterialConfig.setPassword("badger");
-
-            assertThat(svnMaterialConfig.validateTree(null)).isTrue();
-            assertThat(svnMaterialConfig.errors().getAll()).isEmpty();
-        }
-
-        @Test
-        void shouldPassIfPasswordSpecifiedAsSecretParamIsValid() {
-            final ValidationContext validationContext = mockValidationContextForSecretParams(new SecretConfig("secret_config_id", "cd.go.secret.file"));
-
-            svnMaterialConfig.setPassword("{{SECRET:[secret_config_id][password]}}");
-
-            assertThat(svnMaterialConfig.validateTree(validationContext)).isTrue();
-            assertThat(svnMaterialConfig.errors().getAll()).isEmpty();
-        }
-
-        @Test
-        void shouldFailIfSecretConfigForPasswordSpecifiedAsSecretParamDoesNotExist() {
-            final ValidationContext validationContext = mockValidationContextForSecretParams();
-
-            svnMaterialConfig.setPassword("{{SECRET:[secret_config_id][password]}}");
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
 
             assertThat(svnMaterialConfig.validateTree(validationContext)).isFalse();
-            assertThat(svnMaterialConfig.errors().on("encryptedPassword")).isEqualTo("Secret config with ids `secret_config_id` does not exist.");
+            assertThat(svnMaterialConfig.errors().get("url"))
+                    .contains("Secret config with ids `secret_config_id` is not allowed to use in `pipelines` with name `group_1`.");
+        }
+
+        @Test
+        void shouldPassIfSecretConfigCabBeReferedInPipelineGroupWhereCurrentMaterialIsDefined() {
+            svnMaterialConfig.setUrl("svn://username:{{SECRET:[secret_config_id][pass]}}@host/foo");
+            final Rules directives = new Rules(
+                    new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_2"),
+                    new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_1")
+            );
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
+            final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
+
+            assertThat(svnMaterialConfig.validateTree(validationContext)).isTrue();
+            assertThat(svnMaterialConfig.errors().getAll()).isEmpty();
+        }
+
+        @Nested
+        class validateTree {
+            @Test
+            void shouldCallValidate() {
+                final SvnMaterialConfig svnMaterialConfig = spy(SvnMaterialConfigTest.this.svnMaterialConfig);
+                final ValidationContext validationContext = mockValidationContextForSecretParams();
+
+                svnMaterialConfig.validateTree(validationContext);
+
+                verify(svnMaterialConfig).validate(validationContext);
+            }
+        }
+
+        @Nested
+        class ValidateURL {
+            @Test
+            void shouldEnsureUrlIsNotBlank() {
+                svnMaterialConfig.setUrl("");
+
+                svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
+
+                assertThat(svnMaterialConfig.errors().on(GitMaterialConfig.URL)).isEqualTo("URL cannot be blank");
+            }
+
+            @Test
+            void shouldEnsureUrlIsNotNull() {
+                svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
+
+                assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.URL)).isEqualTo("URL cannot be blank");
+            }
+
+            @Test
+            void shouldEnsureMaterialNameIsValid() {
+                svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
+                assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.MATERIAL_NAME)).isNull();
+
+                svnMaterialConfig.setName(new CaseInsensitiveString(".bad-name-with-dot"));
+                svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
+
+                assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.MATERIAL_NAME)).isEqualTo("Invalid material name '.bad-name-with-dot'. This must be alphanumeric and can contain underscores and periods (however, it cannot start with a period). The maximum allowed length is 255 characters.");
+            }
+
+            @Test
+            void shouldEnsureDestFilePathIsValid() {
+                svnMaterialConfig.setConfigAttributes(Collections.singletonMap(ScmMaterialConfig.FOLDER, "../a"));
+                svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
+
+                assertThat(svnMaterialConfig.errors().on(SvnMaterialConfig.FOLDER)).isEqualTo("Dest folder '../a' is not valid. It must be a sub-directory of the working folder.");
+            }
+
+            @Test
+            void shouldFailValidationIfMaterialURLHasSecretParamsConfiguredOtherThanForUsernamePassword() {
+                final ValidationContext validationContext = mockValidationContextForSecretParams();
+                svnMaterialConfig.setUrl("https://user:pass@{{SECRET:[secret_config_id][hostname]}}/foo.git");
+
+                svnMaterialConfig.validate(validationContext);
+
+                assertThat(svnMaterialConfig.errors().on("url")).isEqualTo("Only password can be specified as secret params");
+            }
+
+            @Test
+            void shouldFailIfSecretParamConfiguredWithSecretConfigIdWhichDoesNotExist() {
+                final ValidationContext validationContext = mockValidationContextForSecretParams();
+                svnMaterialConfig.setUrl("https://username:{{SECRET:[secret_config_id][pass]}}@host/foo.git");
+
+                svnMaterialConfig.validate(validationContext);
+
+                assertThat(svnMaterialConfig.errors().on("url")).isEqualTo("Secret config with ids `secret_config_id` does not exist.");
+            }
+
+            @Test
+            void shouldNotFailIfSecretConfigWithIdPresentForConfiguredSecretParams() {
+                final Rules directives = new Rules(new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_1"));
+                svnMaterialConfig.setUrl("https://bob:{{SECRET:[secret_config_id][username]}}@host/foo.git");
+                final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
+                final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
+                when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
+
+                svnMaterialConfig.validate(validationContext);
+
+                assertThat(svnMaterialConfig.errors().getAll()).isEmpty();
+            }
+        }
+
+        @Nested
+        class ValidatePassword {
+            @BeforeEach
+            void setUp() {
+                svnMaterialConfig.setUrl("foo/bar");
+            }
+
+            @Test
+            void shouldFailIfEncryptedPasswordIsIncorrect() {
+                svnMaterialConfig.setEncryptedPassword("encryptedPassword");
+
+                svnMaterialConfig.validate(new ConfigSaveValidationContext(null));
+
+                assertThat(svnMaterialConfig.errors().on("encryptedPassword")).isEqualTo("Encrypted password value for SvnMaterial with url 'foo/bar' is invalid. This usually happens when the cipher text is modified to have an invalid value.");
+            }
+
+            @Test
+            void shouldPassIfPasswordIsNotSpecifiedAsSecretParams() {
+                svnMaterialConfig.setPassword("badger");
+
+                svnMaterialConfig.validate(null);
+                assertThat(svnMaterialConfig.errors().getAll()).isEmpty();
+            }
+
+            @Test
+            void shouldPassIfPasswordSpecifiedAsSecretParamIsValid() {
+                final Rules directives = new Rules(new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_1"));
+                final ValidationContext validationContext = mockValidationContextForSecretParams(new SecretConfig("secret_config_id", "cd.go.secret.file", directives));
+                when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
+
+                svnMaterialConfig.setPassword("{{SECRET:[secret_config_id][password]}}");
+
+                svnMaterialConfig.validate(validationContext);
+
+                assertThat(svnMaterialConfig.errors().getAll()).isEmpty();
+            }
+
+            @Test
+            void shouldFailIfSecretConfigForPasswordSpecifiedAsSecretParamDoesNotExist() {
+                final ValidationContext validationContext = mockValidationContextForSecretParams();
+
+                svnMaterialConfig.setPassword("{{SECRET:[secret_config_id][password]}}");
+
+                svnMaterialConfig.validate(validationContext);
+
+                assertThat(svnMaterialConfig.errors().on("encryptedPassword")).isEqualTo("Secret config with ids `secret_config_id` does not exist.");
+            }
         }
     }
 

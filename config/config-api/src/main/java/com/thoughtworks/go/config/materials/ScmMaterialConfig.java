@@ -17,21 +17,20 @@
 package com.thoughtworks.go.config.materials;
 
 import com.thoughtworks.go.config.*;
-import com.thoughtworks.go.config.elastic.ElasticProfile;
 import com.thoughtworks.go.config.validation.FilePathTypeValidator;
 import com.thoughtworks.go.domain.ConfigErrors;
-import com.thoughtworks.go.domain.PipelineGroups;
 import com.thoughtworks.go.domain.materials.MaterialConfig;
 import com.thoughtworks.go.util.FilenameUtil;
 import com.thoughtworks.go.util.command.UrlArgument;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import static java.lang.String.format;
+import static java.lang.String.join;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
@@ -248,12 +247,12 @@ public abstract class ScmMaterialConfig extends AbstractMaterialConfig implement
     }
 
     public void setAutoUpdateMismatchError() {
-        addError(AUTO_UPDATE, String.format("Material of type %s (%s) is specified more than once in the configuration with different values for the autoUpdate attribute."
+        addError(AUTO_UPDATE, format("Material of type %s (%s) is specified more than once in the configuration with different values for the autoUpdate attribute."
                 + " All copies of this material must have the same value for this attribute.", getTypeForDisplay(), getDescription()));
     }
 
     public void setAutoUpdateMismatchErrorWithConfigRepo() {
-        addError(AUTO_UPDATE, String.format("Material of type %s (%s) is specified as a configuration repository and pipeline material with disabled autoUpdate."
+        addError(AUTO_UPDATE, format("Material of type %s (%s) is specified as a configuration repository and pipeline material with disabled autoUpdate."
                 + " All copies of this material must have autoUpdate enabled or configuration repository must be removed", getTypeForDisplay(), getDescription()));
     }
 
@@ -283,7 +282,7 @@ public abstract class ScmMaterialConfig extends AbstractMaterialConfig implement
             return;
         }
         if (!(FilenameUtil.isNormalizedPathOutsideWorkingDir(dest))) {
-            setDestinationFolderError(String.format("Dest folder '%s' is not valid. It must be a sub-directory of the working folder.", dest));
+            setDestinationFolderError(format("Dest folder '%s' is not valid. It must be a sub-directory of the working folder.", dest));
         }
     }
 
@@ -324,13 +323,29 @@ public abstract class ScmMaterialConfig extends AbstractMaterialConfig implement
             return;
         }
 
-        final List<String> missingSecretConfigs = secretParams.stream()
-                .filter(secretParam -> validationContext.getCruiseConfig().getSecretConfigs().find(secretParam.getSecretConfigId()) == null)
-                .map(SecretParam::getSecretConfigId)
-                .collect(Collectors.toList());
+        final SecretConfigs secretConfigs = validationContext.getCruiseConfig().getSecretConfigs();
+        final PipelineConfigs pipelineGroup = validationContext.getPipelineGroup();
+
+        final Set<String> missingSecretConfigs = new HashSet<>();
+        final Set<String> canNotReferSecretConfigs = new HashSet<>();
+
+        secretParams.forEach(secretParam -> {
+            final SecretConfig secretConfig = secretConfigs.find(secretParam.getSecretConfigId());
+            if (secretConfig == null) {
+                missingSecretConfigs.add(secretParam.getSecretConfigId());
+            } else {
+                if (!secretConfig.canRefer(pipelineGroup.getClass(), pipelineGroup.getGroup())) {
+                    canNotReferSecretConfigs.add(secretParam.getSecretConfigId());
+                }
+            }
+        });
 
         if (!missingSecretConfigs.isEmpty()) {
-            addError(key, String.format("Secret config with ids `%s` does not exist.", String.join(", ", missingSecretConfigs)));
+            addError(key, format("Secret config with ids `%s` does not exist.", join(", ", missingSecretConfigs)));
+        }
+
+        if (!canNotReferSecretConfigs.isEmpty()) {
+            addError(key, format("Secret config with ids `%s` is not allowed to use in `%s` with name `%s`.", join(", ", canNotReferSecretConfigs), pipelineGroup.getClass().getAnnotation(ConfigTag.class).value(), pipelineGroup.getGroup()));
         }
     }
 }

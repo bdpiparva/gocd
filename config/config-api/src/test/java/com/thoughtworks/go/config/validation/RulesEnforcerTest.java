@@ -48,7 +48,7 @@ class RulesEnforcerTest {
 
             when(rulesAware.rules()).thenReturn(rules);
 
-            assertThat(rulesEnforcer.canRefer(pipelineConfigs, rulesAware)).isFalse();
+            assertThat(rulesEnforcer.canRefer(rulesAware, pipelineConfigs)).isFalse();
         }
 
         @Test
@@ -58,7 +58,7 @@ class RulesEnforcerTest {
 
             when(rulesAware.rules()).thenReturn(rules);
 
-            assertThat(rulesEnforcer.canRefer(pipelineConfigs, rulesAware)).isTrue();
+            assertThat(rulesEnforcer.canRefer(rulesAware, pipelineConfigs)).isTrue();
         }
     }
 }

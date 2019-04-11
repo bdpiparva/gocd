@@ -18,9 +18,10 @@ package com.thoughtworks.go.config.rules;
 
 import com.thoughtworks.go.config.PipelineConfigs;
 import com.thoughtworks.go.config.Validatable;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
+
+import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
 
 public enum EntityType {
     PIPELINE_GROUP("pipeline_group", PipelineConfigs.class),
@@ -43,7 +44,7 @@ public enum EntityType {
     }
 
     public static EntityType fromString(String type) {
-        return Arrays.stream(values()).filter(t -> StringUtils.equals(t.type, type))
+        return Arrays.stream(values()).filter(t -> equalsIgnoreCase(t.type, type))
                 .findFirst().orElse(UNKNOWN);
     }
 }

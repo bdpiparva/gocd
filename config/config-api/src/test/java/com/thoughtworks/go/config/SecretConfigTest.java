@@ -36,6 +36,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 
+import static com.thoughtworks.go.config.rules.EntityType.PIPELINE_GROUP;
 import static com.thoughtworks.go.domain.packagerepository.ConfigurationPropertyMother.create;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -178,7 +179,21 @@ public class SecretConfigTest extends PluginProfileTest {
             assertThat(secretConfig.hasErrors()).isTrue();
         }
     }
-    
+
+    @Nested
+    class canRefer {
+        @Test
+        void shouldReturnTrueIfCanBeReferedByGivenEntityOfTypeAndName() {
+            final Rules directives = new Rules(
+                    new Allow("refer", PIPELINE_GROUP.getType(), "group_2"),
+                    new Allow("refer", PIPELINE_GROUP.getType(), "group_1")
+            );
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
+
+            assertThat(secretConfig.canRefer(PipelineConfigs.class, "group_1")).isTrue();
+        }
+    }
+
     private PluginDescriptor pluginDescriptor(String pluginId) {
         return new PluginDescriptor() {
             @Override

@@ -22,6 +22,9 @@ import com.thoughtworks.go.config.materials.Filter;
 import com.thoughtworks.go.config.materials.IgnoredFiles;
 import com.thoughtworks.go.config.materials.ScmMaterialConfig;
 import com.thoughtworks.go.config.materials.svn.SvnMaterialConfig;
+import com.thoughtworks.go.config.rules.Allow;
+import com.thoughtworks.go.config.rules.EntityType;
+import com.thoughtworks.go.config.rules.Rules;
 import com.thoughtworks.go.security.GoCipher;
 import com.thoughtworks.go.util.ReflectionUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,9 +34,9 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.thoughtworks.go.helper.PipelineConfigMother.createGroup;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class P4MaterialConfigTest {
     private P4MaterialConfig p4MaterialConfig;
@@ -142,14 +145,59 @@ class P4MaterialConfigTest {
     }
 
     @Nested
-    class ValidatePassword {
+    class validateTree {
+        @Test
+        void shouldCallValidate() {
+            final P4MaterialConfig spyP4MaterialConfig = spy(p4MaterialConfig);
+            final ValidationContext validationContext = mockValidationContextForSecretParams();
+
+            spyP4MaterialConfig.validateTree(validationContext);
+
+            verify(spyP4MaterialConfig).validate(validationContext);
+        }
+    }
+
+    @Nested
+    class Validate {
+        @Test
+        void shouldFailIfSecretConfigCannotBeUsedInPipelineGroupWhereCurrentMaterialIsDefined() {
+            p4MaterialConfig.setPassword("{{SECRET:[secret_config_id][pass]}}");
+            final Rules directives = new Rules(new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_2"));
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
+            final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
+
+            p4MaterialConfig.validate(validationContext);
+
+
+            assertThat(p4MaterialConfig.errors().get("encryptedPassword"))
+                    .contains("Secret config with ids `secret_config_id` is not allowed to use in `pipelines` with name `group_1`.");
+        }
+
+        @Test
+        void shouldPassIfSecretConfigCabBeReferedInPipelineGroupWhereCurrentMaterialIsDefined() {
+            p4MaterialConfig.setPassword("{{SECRET:[secret_config_id][pass]}}");
+            final Rules directives = new Rules(
+                    new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_2"),
+                    new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_1")
+            );
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
+            final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
+
+
+            p4MaterialConfig.validate(validationContext);
+
+
+            assertThat(p4MaterialConfig.errors().getAll()).isEmpty();
+        }
+
         @Test
         void shouldFailIfEncryptedPasswordIsIncorrect() {
             p4MaterialConfig.setEncryptedPassword("encryptedPassword");
 
-            final boolean validationResult = p4MaterialConfig.validateTree(new ConfigSaveValidationContext(null));
+            p4MaterialConfig.validate(new ConfigSaveValidationContext(null));
 
-            assertThat(validationResult).isFalse();
             assertThat(p4MaterialConfig.errors().on("encryptedPassword")).isEqualTo("Encrypted password value for P4Material with url '/foo/bar' is invalid. This usually happens when the cipher text is modified to have an invalid value.");
         }
 
@@ -157,16 +205,20 @@ class P4MaterialConfigTest {
         void shouldPassIfPasswordIsNotSpecifiedAsSecretParams() {
             p4MaterialConfig.setPassword("badger");
 
-            assertThat(p4MaterialConfig.validateTree(null)).isTrue();
+            p4MaterialConfig.validate(null);
+
             assertThat(p4MaterialConfig.errors().getAll()).isEmpty();
         }
 
         @Test
         void shouldPassIfPasswordSpecifiedAsSecretParamIsValid() {
-            final ValidationContext validationContext = mockValidationContextForSecretParams(new SecretConfig("secret_config_id", "cd.go.secret.file"));
+            final Rules directives = new Rules(new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_2"));
+            final ValidationContext validationContext = mockValidationContextForSecretParams(new SecretConfig("secret_config_id", "cd.go.secret.file", directives));
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_2", "up42"));
             p4MaterialConfig.setPassword("{{SECRET:[secret_config_id][password]}}");
 
-            assertThat(p4MaterialConfig.validateTree(validationContext)).isTrue();
+            p4MaterialConfig.validate(validationContext);
+
             assertThat(p4MaterialConfig.errors().getAll()).isEmpty();
         }
 
@@ -175,7 +227,8 @@ class P4MaterialConfigTest {
             final ValidationContext validationContext = mockValidationContextForSecretParams();
             p4MaterialConfig.setPassword("{{SECRET:[secret_config_id][password]}}");
 
-            assertThat(p4MaterialConfig.validateTree(validationContext)).isFalse();
+            p4MaterialConfig.validate(validationContext);
+
             assertThat(p4MaterialConfig.errors().on("encryptedPassword")).isEqualTo("Secret config with ids `secret_config_id` does not exist.");
         }
     }

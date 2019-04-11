@@ -81,7 +81,8 @@ public abstract class AbstractDirective implements Directive {
         if (equalsIgnoreCase("*", this.type)) {
             return true;
         }
-        return entityType == EntityType.fromString(this.type).getEntityType();
+        
+        return EntityType.fromString(this.type).getEntityType().isAssignableFrom(entityType);
     }
 
     protected boolean matchesResource(String resource) {

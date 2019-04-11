@@ -21,6 +21,9 @@ import com.thoughtworks.go.config.materials.AbstractMaterialConfig;
 import com.thoughtworks.go.config.materials.Filter;
 import com.thoughtworks.go.config.materials.IgnoredFiles;
 import com.thoughtworks.go.config.materials.ScmMaterialConfig;
+import com.thoughtworks.go.config.rules.Allow;
+import com.thoughtworks.go.config.rules.EntityType;
+import com.thoughtworks.go.config.rules.Rules;
 import com.thoughtworks.go.util.command.UrlArgument;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,9 +33,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.thoughtworks.go.helper.MaterialConfigsMother.gitMaterialConfig;
+import static com.thoughtworks.go.helper.PipelineConfigMother.createGroup;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class GitMaterialConfigTest {
     @Test
@@ -139,6 +142,19 @@ class GitMaterialConfigTest {
     }
 
     @Nested
+    class validateTree {
+        @Test
+        void shouldCallValidate() {
+            final GitMaterialConfig spyGitMaterialConfig = spy(gitMaterialConfig("some-url"));
+            final ValidationContext validationContext = mockValidationContextForSecretParams();
+
+            spyGitMaterialConfig.validateTree(validationContext);
+
+            verify(spyGitMaterialConfig).validate(validationContext);
+        }
+    }
+
+    @Nested
     class Validate {
         @Test
         void shouldEnsureUrlIsNotBlank() {
@@ -169,8 +185,40 @@ class GitMaterialConfigTest {
 
         @Test
         void shouldNotFailIfSecretConfigWithIdPresentForConfiguredSecretParams() {
-            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file");
+            final Rules directives = new Rules(new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_1"));
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
             final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
+
+            final GitMaterialConfig gitMaterialConfig = gitMaterialConfig("https://username:{{SECRET:[secret_config_id][pass]}}@host/foo.git");
+
+            assertThat(gitMaterialConfig.validateTree(validationContext)).isTrue();
+            assertThat(gitMaterialConfig.errors().getAll()).isEmpty();
+        }
+
+        @Test
+        void shouldFailIfSecretConfigCannotBeUsedInPipelineGroupWhereCurrentMaterialIsDefined() {
+            final Rules directives = new Rules(new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_2"));
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
+            final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
+
+            final GitMaterialConfig gitMaterialConfig = gitMaterialConfig("https://username:{{SECRET:[secret_config_id][pass]}}@host/foo.git");
+
+            assertThat(gitMaterialConfig.validateTree(validationContext)).isFalse();
+            assertThat(gitMaterialConfig.errors().get("url"))
+                    .contains("Secret config with ids `secret_config_id` is not allowed to use in `pipelines` with name `group_1`.");
+        }
+
+        @Test
+        void shouldPassIfSecretConfigCabBeReferedInPipelineGroupWhereCurrentMaterialIsDefined() {
+            final Rules directives = new Rules(
+                    new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_2"),
+                    new Allow("refer", EntityType.PIPELINE_GROUP.getType(), "group_1")
+            );
+            final SecretConfig secretConfig = new SecretConfig("secret_config_id", "cd.go.secret.file", directives);
+            final ValidationContext validationContext = mockValidationContextForSecretParams(secretConfig);
+            when(validationContext.getPipelineGroup()).thenReturn(createGroup("group_1", "up42"));
 
             final GitMaterialConfig gitMaterialConfig = gitMaterialConfig("https://username:{{SECRET:[secret_config_id][pass]}}@host/foo.git");
 
