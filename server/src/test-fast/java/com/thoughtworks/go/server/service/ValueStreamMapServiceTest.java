@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 ThoughtWorks, Inc.
+ * Copyright 2019 ThoughtWorks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -334,7 +334,7 @@ public class ValueStreamMapServiceTest {
 
 		GitMaterial gitMaterial = new GitMaterial("git");
 		MaterialConfig gitConfig = gitMaterial.config();
-		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("git", "master", "submodule", "flyweight");
+		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("git", , "master", "submodule", "flyweight");
 		BuildCause p3buildCause = createBuildCause(asList("p1", "p2"), new ArrayList<>());
 		BuildCause p2buildCause = createBuildCause(new ArrayList<>(), asList(gitMaterial));
 		Modification gitModification = p2buildCause.getMaterialRevisions().getRevisions().get(0).getModifications().get(0);
@@ -905,7 +905,7 @@ public class ValueStreamMapServiceTest {
 		String userName = "looser";
 		GitMaterial gitMaterial = new GitMaterial("git");
 		MaterialConfig gitConfig = gitMaterial.config();
-		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("url", "branch", "submodule", "flyweight");
+		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("url", , "branch", "submodule", "flyweight");
 		PipelineConfigs groups = new BasicPipelineConfigs(groupName, new Authorization(), PipelineConfigMother.pipelineConfig(pipelineName, new MaterialConfigs(gitConfig)));
 		CruiseConfig cruiseConfig = new BasicCruiseConfig(groups);
 		when(goConfigService.currentCruiseConfig()).thenReturn(cruiseConfig);

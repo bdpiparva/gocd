@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 ThoughtWorks, Inc.
+ * Copyright 2019 ThoughtWorks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@
 
 package com.thoughtworks.go.config.materials.git;
 
-import com.thoughtworks.go.config.*;
+import com.thoughtworks.go.config.CaseInsensitiveString;
+import com.thoughtworks.go.config.ConfigSaveValidationContext;
 import com.thoughtworks.go.config.materials.AbstractMaterialConfig;
 import com.thoughtworks.go.config.materials.Filter;
 import com.thoughtworks.go.config.materials.IgnoredFiles;
@@ -32,8 +33,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class GitMaterialConfigTest {
     @Test
@@ -148,7 +147,7 @@ class GitMaterialConfigTest {
     @Test
     void shouldHandleNullBranchAtTheTimeOfMaterialConfigCreation() {
         GitMaterialConfig config1 = new GitMaterialConfig("http://url", null);
-        GitMaterialConfig config2 = new GitMaterialConfig(new UrlArgument("http://url"), null, "sub1", true, new Filter(), false, "folder", new CaseInsensitiveString("git"), false);
+        GitMaterialConfig config2 = new GitMaterialConfig(new UrlArgument("http://url"), "bob", "pass", null, "sub1", true, new Filter(), false, "folder", new CaseInsensitiveString("git"), false);
 
         assertThat(config1.getBranch()).isEqualTo("master");
         assertThat(config2.getBranch()).isEqualTo("master");
@@ -178,11 +177,79 @@ class GitMaterialConfigTest {
         }
     }
 
-    private ValidationContext mockValidationContextForSecretParams(SecretConfig... secretConfigs) {
-        final ValidationContext validationContext = mock(ValidationContext.class);
-        final CruiseConfig cruiseConfig = mock(CruiseConfig.class);
-        when(validationContext.getCruiseConfig()).thenReturn(cruiseConfig);
-        when(cruiseConfig.getSecretConfigs()).thenReturn(new SecretConfigs(secretConfigs));
-        return validationContext;
+    @Nested
+    class Equals {
+        @Test
+        void shouldBeEqualIfObjectsHaveSameUrlBranchUserNameAndSubModuleFolder() {
+            final GitMaterialConfig material_1 = new GitMaterialConfig("http://example.com", "master");
+            material_1.setUserName("bob");
+            material_1.setSubmoduleFolder("/var/lib/git");
+
+            final GitMaterialConfig material_2 = new GitMaterialConfig("http://example.com", "master");
+            material_2.setUserName("bob");
+            material_2.setSubmoduleFolder("/var/lib/git");
+
+            assertThat(material_1.equals(material_2)).isTrue();
+        }
+
+        @Test
+        void shouldBeEqualIfObjectsHaveSameUrlBranchSubModuleFolder_ButNoUserName() {
+            final GitMaterialConfig material_1 = new GitMaterialConfig("http://example.com", "master");
+            material_1.setSubmoduleFolder("/var/lib/git");
+
+            final GitMaterialConfig material_2 = new GitMaterialConfig("http://example.com", "master");
+            material_2.setSubmoduleFolder("/var/lib/git");
+
+            assertThat(material_1.equals(material_2)).isTrue();
+        }
+    }
+
+    @Nested
+    class Fingerprint {
+        @Test
+        void shouldGenerateFingerprintForGivenMaterialUrl() {
+            GitMaterialConfig gitMaterialConfig = new GitMaterialConfig("https://bob:pass@github.com/gocd");
+
+            assertThat(gitMaterialConfig.getFingerprint()).isEqualTo("027675d28ace7ecc7195d3dd17002a152a6d93721c3793c769171fadef13b7a1");
+        }
+
+        @Test
+        void shouldGenerateFingerprintForGivenMaterialUrlAndBranch() {
+            GitMaterialConfig gitMaterialConfig = new GitMaterialConfig("https://bob:pass@github.com/gocd", "feature");
+
+            assertThat(gitMaterialConfig.getFingerprint()).isEqualTo("755da7fb7415c8674bdf5f8a4ba48fc3e071e5de429b1308ccf8949d215bdb08");
+        }
+
+        @Test
+        void shouldIncludeUsernameAttributeInFingerprintIfPresent() {
+            GitMaterialConfig gitMaterialConfig = new GitMaterialConfig("https://github.com/gocd");
+            gitMaterialConfig.setUserName("bob");
+
+            assertThat(gitMaterialConfig.getFingerprint()).isEqualTo("6c5c5ef53a996d982bff772eb0ffbe7cb7f626d54407cad1440f50e6711c4272");
+        }
+
+        @Test
+        void shouldNotConsiderPasswordAttributesForGeneratingFingerPrint() {
+            GitMaterialConfig withoutPassword = new GitMaterialConfig("https://github.com/gocd");
+            withoutPassword.setUserName("bob");
+
+            GitMaterialConfig withPassword = new GitMaterialConfig("https://github.com/gocd");
+            withPassword.setUserName("bob");
+            withPassword.setPassword("pass");
+
+            assertThat(withoutPassword.getFingerprint()).isEqualTo(withPassword.getFingerprint());
+        }
+
+        @Test
+        void shouldGenerateDifferentFingerprintWhenCredentialsArePartOfURLOrSpecifiedAsAttribute() {
+            GitMaterialConfig gitMaterialWithCredentialsInUrl = new GitMaterialConfig("https://bob@github.com/gocd");
+
+            GitMaterialConfig gitMaterialWithCredentialsAsAttribute = new GitMaterialConfig("https://github.com/gocd");
+            gitMaterialWithCredentialsAsAttribute.setUserName("bob");
+
+            assertThat(gitMaterialWithCredentialsInUrl.getFingerprint())
+                    .isNotEqualTo(gitMaterialWithCredentialsAsAttribute.getFingerprint());
+
+        }
     }
 }

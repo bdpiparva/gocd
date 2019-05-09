@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 ThoughtWorks, Inc.
+ * Copyright 2019 ThoughtWorks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ public class MagicalMaterialAndMaterialConfigConversionTest {
     private static Map<Class, String[]> fieldsWhichShouldBeIgnoredWhenSavedInDbAndGotBack = new HashMap<>();
     private MaterialConfigConverter materialConfigConverter = new MaterialConfigConverter();
 
-    @DataPoint public static MaterialConfig gitMaterialConfig = new GitMaterialConfig(url("git-url"), "branch", "submodule", true, filterFor("*.doc"), false, "folder", cis("gitMaterial"), false);
+    @DataPoint public static MaterialConfig gitMaterialConfig = new GitMaterialConfig(url("git-url"), null, null, "branch", "submodule", true, filterFor("*.doc"), false, "folder", cis("gitMaterial"), false);
     @DataPoint public static MaterialConfig hgMaterialConfig = new HgMaterialConfig(new HgUrlArgument("hg-url"), true, filterFor("*.png"), false, "folder", cis("hgMaterial"));
     @DataPoint public static MaterialConfig svnMaterialConfig = new SvnMaterialConfig(url("svn-url"), "user", "pass", true, new GoCipher(), true, filterFor("*.txt"), false, "folder", cis("name1"));
     @DataPoint public static MaterialConfig p4MaterialConfig = new P4MaterialConfig("localhost:9090", "user", "pass", true, "view", new GoCipher(), cis("p4Material"), true, filterFor("*.jpg"), false, "folder");

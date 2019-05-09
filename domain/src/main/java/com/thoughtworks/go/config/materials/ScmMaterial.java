@@ -150,6 +150,10 @@ public abstract class ScmMaterial extends AbstractMaterial implements SecretPara
         }
     }
 
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
     public final void setEncryptedPassword(String encryptedPassword) {
         this.encryptedPassword = encryptedPassword;
     }
@@ -168,13 +172,12 @@ public abstract class ScmMaterial extends AbstractMaterial implements SecretPara
 
     @Override
     public boolean hasSecretParams() {
-        return (getUrlArgument() != null && this.getUrlArgument().hasSecretParams())
-                || (this.secretParamsForPassword != null && !this.secretParamsForPassword.isEmpty());
+        return this.secretParamsForPassword != null && !this.secretParamsForPassword.isEmpty();
     }
 
     @Override
     public SecretParams getSecretParams() {
-        return SecretParams.union(getUrlArgument().getSecretParams(), secretParamsForPassword);
+        return secretParamsForPassword;
     }
 
     public final String currentPassword() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 ThoughtWorks, Inc.
+ * Copyright 2019 ThoughtWorks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -366,7 +366,7 @@ public class MaterialServiceTest {
 	@Test
 	public void shouldDelegateToMaterialRepository_getTotalModificationsFor() {
 		GitMaterialConfig materialConfig = new GitMaterialConfig("http://test.com");
-		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("http://test.com", null, null, "flyweight");
+		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("http://test.com", , null, null, "flyweight");
 
 		when(materialRepository.findMaterialInstance(materialConfig)).thenReturn(gitMaterialInstance);
 
@@ -380,7 +380,7 @@ public class MaterialServiceTest {
 	@Test
 	public void shouldDelegateToMaterialRepository_getModificationsFor() {
 		GitMaterialConfig materialConfig = new GitMaterialConfig("http://test.com");
-		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("http://test.com", null, null, "flyweight");
+		GitMaterialInstance gitMaterialInstance = new GitMaterialInstance("http://test.com", , null, null, "flyweight");
 		Pagination pagination = Pagination.pageStartingAt(0, 10, 10);
 		Modifications modifications = new Modifications();
 		modifications.add(new Modification("user", "comment", "email", new Date(), "revision"));

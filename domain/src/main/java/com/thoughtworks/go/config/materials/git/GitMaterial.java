@@ -33,7 +33,6 @@ import com.thoughtworks.go.util.command.InMemoryStreamConsumer;
 import com.thoughtworks.go.util.command.SecretString;
 import com.thoughtworks.go.util.command.UrlArgument;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -48,6 +47,8 @@ import static com.thoughtworks.go.util.FileUtil.createParentFolderIfNotExist;
 import static com.thoughtworks.go.util.FileUtil.deleteDirectoryNoisily;
 import static com.thoughtworks.go.util.command.ProcessOutputStreamConsumer.inMemoryConsumer;
 import static java.lang.String.format;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
  * Understands configuration for git version control
@@ -103,11 +104,13 @@ public class GitMaterial extends ScmMaterial {
         this.name = config.getName();
         this.submoduleFolder = config.getSubmoduleFolder();
         this.invertFilter = config.getInvertFilter();
+        this.userName = config.getUserName();
+        setPassword(config.getPassword());
     }
 
     @Override
     public MaterialConfig config() {
-        return new GitMaterialConfig(url, branch, submoduleFolder, autoUpdate, filter, invertFilter, folder, name, shallowClone);
+        return new GitMaterialConfig(url, userName, getPassword(), branch, submoduleFolder, autoUpdate, filter, invertFilter, folder, name, shallowClone);
     }
 
     public List<Modification> latestModification(File baseDir, final SubprocessExecutionContext execCtx) {
@@ -127,13 +130,16 @@ public class GitMaterial extends ScmMaterial {
     }
 
     public MaterialInstance createMaterialInstance() {
-        return new GitMaterialInstance(url.originalArgument(), branch, submoduleFolder, UUID.randomUUID().toString());
+        return new GitMaterialInstance(url.originalArgument(), userName, branch, submoduleFolder, UUID.randomUUID().toString());
     }
 
     @Override
     protected void appendCriteria(Map<String, Object> parameters) {
         parameters.put(ScmMaterialConfig.URL, url.originalArgument());
         parameters.put("branch", branch);
+        if (isNotBlank(this.userName)) {
+            parameters.put("username", this.userName);
+        }
     }
 
     @Override
@@ -318,6 +324,9 @@ public class GitMaterial extends ScmMaterial {
         if (url != null ? !url.equals(that.url) : that.url != null) {
             return false;
         }
+        if (userName != null ? !userName.equals(that.userName) : that.userName != null) {
+            return false;
+        }
 
         return true;
     }
@@ -327,6 +336,7 @@ public class GitMaterial extends ScmMaterial {
         int result = super.hashCode();
         result = 31 * result + (url != null ? url.hashCode() : 0);
         result = 31 * result + (branch != null ? branch.hashCode() : 0);
+        result = 31 * result + (userName != null ? userName.hashCode() : 0);
         result = 31 * result + (submoduleFolder != null ? submoduleFolder.hashCode() : 0);
         return result;
     }
@@ -413,6 +423,6 @@ public class GitMaterial extends ScmMaterial {
     }
 
     public String branchWithDefault() {
-        return StringUtils.isBlank(branch) ? GitMaterialConfig.DEFAULT_BRANCH : branch;
+        return isBlank(branch) ? GitMaterialConfig.DEFAULT_BRANCH : branch;
     }
 }

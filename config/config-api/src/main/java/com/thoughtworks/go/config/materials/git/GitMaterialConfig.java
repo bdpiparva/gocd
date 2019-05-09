@@ -28,9 +28,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 @ConfigTag("git")
 public class GitMaterialConfig extends ScmMaterialConfig {
-
     @ConfigAttribute(value = "url")
     private UrlArgument url;
 
@@ -69,7 +70,7 @@ public class GitMaterialConfig extends ScmMaterialConfig {
         setShallowClone(shallowClone);
     }
 
-    public GitMaterialConfig(UrlArgument url, String branch, String submoduleFolder, boolean autoUpdate, Filter filter, boolean invertFilter, String folder, CaseInsensitiveString name, Boolean shallowClone) {
+    public GitMaterialConfig(UrlArgument url, String userName, String password, String branch, String submoduleFolder, boolean autoUpdate, Filter filter, boolean invertFilter, String folder, CaseInsensitiveString name, Boolean shallowClone) {
         super(name, filter, invertFilter, folder, autoUpdate, TYPE, new ConfigErrors());
         this.url = url;
         if (branch != null) {
@@ -77,12 +78,17 @@ public class GitMaterialConfig extends ScmMaterialConfig {
         }
         this.submoduleFolder = submoduleFolder;
         this.shallowClone = shallowClone;
+        this.userName = userName;
+        setPassword(password);
     }
 
     @Override
     protected void appendCriteria(Map<String, Object> parameters) {
         parameters.put(ScmMaterialConfig.URL, url.originalArgument());
         parameters.put("branch", branch);
+        if (isNotBlank(this.userName)) {
+            parameters.put("username", userName);
+        }
     }
 
     @Override
@@ -132,6 +138,9 @@ public class GitMaterialConfig extends ScmMaterialConfig {
         if (url != null ? !url.equals(that.url) : that.url != null) {
             return false;
         }
+        if (userName != null ? !userName.equals(that.userName) : that.userName != null) {
+            return false;
+        }
 
         return super.equals(that);
     }
@@ -141,6 +150,7 @@ public class GitMaterialConfig extends ScmMaterialConfig {
         int result = super.hashCode();
         result = 31 * result + (url != null ? url.hashCode() : 0);
         result = 31 * result + (branch != null ? branch.hashCode() : 0);
+        result = 31 * result + (userName != null ? userName.hashCode() : 0);
         result = 31 * result + (submoduleFolder != null ? submoduleFolder.hashCode() : 0);
         return result;
     }
