@@ -216,7 +216,7 @@ public abstract class ScmMaterial extends AbstractMaterial implements SecretPara
     }
 
     public String getUriForDisplay() {
-        return getUrlArgument().forDisplay();
+        return this.getUrlArgument().forDisplay();
     }
 
     public void populateEnvironmentContext(EnvironmentVariableContext environmentVariableContext, MaterialRevision materialRevision, File workingDir) {
