@@ -60,6 +60,7 @@ public class HgMaterial extends ScmMaterial {
             "Failed to find 'hg' on your PATH. Please ensure 'hg' is executable by the Go Server and on the Go Agents where this material will be used.";
 
     private final String HG_DEFAULT_BRANCH = "default";
+    private String branch = HG_DEFAULT_BRANCH;
 
     private HgMaterial() {
         super(TYPE, new GoCipher());
@@ -78,11 +79,13 @@ public class HgMaterial extends ScmMaterial {
         this.filter = config.rawFilter();
         this.invertFilter = config.getInvertFilter();
         this.name = config.getName();
+        this.userName = config.getUserName();
+        setPassword(config.getPassword());
     }
 
     @Override
     public MaterialConfig config() {
-        return new HgMaterialConfig(url, autoUpdate, filter, invertFilter, folder, name);
+        return new HgMaterialConfig(url, userName, getPassword(), branch, autoUpdate, filter, invertFilter, folder, name);
     }
 
     public List<Modification> latestModification(File baseDir, final SubprocessExecutionContext execCtx) {
@@ -266,6 +269,14 @@ public class HgMaterial extends ScmMaterial {
             return false;
         }
 
+        if (userName != null ? !userName.equals(that.userName) : that.userName != null) {
+            return false;
+        }
+
+        if (branch != null ? !branch.equals(that.branch) : that.branch != null) {
+            return false;
+        }
+
         return true;
     }
 
@@ -273,6 +284,8 @@ public class HgMaterial extends ScmMaterial {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (url != null ? url.hashCode() : 0);
+        result = 31 * result + (userName != null ? userName.hashCode() : 0);
+        result = 31 * result + (branch != null ? branch.hashCode() : 0);
         return result;
     }
 
@@ -316,6 +329,10 @@ public class HgMaterial extends ScmMaterial {
                 '}';
     }
 
+    public void setBranch(String branch) {
+        this.branch = branch;
+    }
+
     public String getBranch() {
         return getBranchFromUrl(url.originalArgument());
     }
@@ -327,5 +344,4 @@ public class HgMaterial extends ScmMaterial {
         }
         return HG_DEFAULT_BRANCH;
     }
-
 }

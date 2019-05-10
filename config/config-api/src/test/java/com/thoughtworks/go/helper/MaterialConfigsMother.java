@@ -55,7 +55,7 @@ public class MaterialConfigsMother {
         return materialConfigs;
     }
 
-    public static PackageMaterialConfig packageMaterialConfig(){
+    public static PackageMaterialConfig packageMaterialConfig() {
         return packageMaterialConfig("repo-name", "package-name");
     }
 
@@ -71,14 +71,14 @@ public class MaterialConfigsMother {
 
     public static PluggableSCMMaterialConfig pluggableSCMMaterialConfig() {
         Filter filter = new Filter(new IgnoredFiles("**/*.html"), new IgnoredFiles("**/foobar/"));
-         return pluggableSCMMaterialConfig("scm-id", "des-folder", filter);
+        return pluggableSCMMaterialConfig("scm-id", "des-folder", filter);
     }
 
     public static PluggableSCMMaterialConfig pluggableSCMMaterialConfigWithConfigProperties(String... properties) {
         SCM scmConfig = SCMMother.create("scm-id");
         Configuration configuration = new Configuration();
         for (String property : properties) {
-            ConfigurationProperty configurationProperty = new ConfigurationProperty(new ConfigurationKey(property), new ConfigurationValue(property+"-value"));
+            ConfigurationProperty configurationProperty = new ConfigurationProperty(new ConfigurationKey(property), new ConfigurationValue(property + "-value"));
             configuration.add(configurationProperty);
         }
         scmConfig.setConfiguration(configuration);
@@ -99,12 +99,12 @@ public class MaterialConfigsMother {
 
     public static HgMaterialConfig hgMaterialConfigFull() {
         Filter filter = new Filter(new IgnoredFiles("**/*.html"), new IgnoredFiles("**/foobar/"));
-        return new HgMaterialConfig(new HgUrlArgument("http://user:pass@domain/path##branch"),true, filter, false, "dest-folder", new CaseInsensitiveString("hg-material") );
+        return new HgMaterialConfig(new HgUrlArgument("http://user:pass@domain/path##branch"), null, null, null, true, filter, false, "dest-folder", new CaseInsensitiveString("hg-material"));
     }
 
     public static HgMaterialConfig hgMaterialConfigFull(String url) {
         Filter filter = new Filter(new IgnoredFiles("**/*.html"), new IgnoredFiles("**/foobar/"));
-        return new HgMaterialConfig(new HgUrlArgument(url),true, filter, false, "dest-folder", new CaseInsensitiveString("hg-material") );
+        return new HgMaterialConfig(new HgUrlArgument(url), null, null, null, true, filter, false, "dest-folder", new CaseInsensitiveString("hg-material"));
     }
 
     public static HgMaterialConfig hgMaterialConfig() {
@@ -138,6 +138,7 @@ public class MaterialConfigsMother {
     public static P4MaterialConfig p4MaterialConfig() {
         return p4MaterialConfig("serverAndPort", null, null, "view", false);
     }
+
     public static P4MaterialConfig p4MaterialConfigFull() {
         Filter filter = new Filter(new IgnoredFiles("**/*.html"), new IgnoredFiles("**/foobar/"));
         P4MaterialConfig config = p4MaterialConfig("host:9876", "user", "password", "view", true);
@@ -196,9 +197,9 @@ public class MaterialConfigsMother {
         return new MaterialConfigs(new SvnMaterialConfig(url, null, null, false));
     }
 
-    public static TfsMaterialConfig tfsMaterialConfig(){
+    public static TfsMaterialConfig tfsMaterialConfig() {
         Filter filter = new Filter(new IgnoredFiles("**/*.html"), new IgnoredFiles("**/foobar/"));
-        TfsMaterialConfig tfsMaterialConfig= new TfsMaterialConfig(new GoCipher(), new UrlArgument("http://10.4.4.101:8080/tfs/Sample"), "loser", "some_domain", "passwd", "walk_this_path");
+        TfsMaterialConfig tfsMaterialConfig = new TfsMaterialConfig(new GoCipher(), new UrlArgument("http://10.4.4.101:8080/tfs/Sample"), "loser", "some_domain", "passwd", "walk_this_path");
         tfsMaterialConfig.setFilter(filter);
         tfsMaterialConfig.setName(new CaseInsensitiveString("tfs-material"));
         tfsMaterialConfig.setFolder("dest-folder");

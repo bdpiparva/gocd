@@ -28,6 +28,8 @@ import java.util.Map;
 public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttributeAware {
     @ConfigAttribute(value = "url")
     private HgUrlArgument url;
+    private String userName;
+    private String branch;
 
     public static final String TYPE = "HgMaterial";
     public static final String URL = "url";
@@ -42,9 +44,13 @@ public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttribu
         this.folder = folder;
     }
 
-    public HgMaterialConfig(HgUrlArgument url, boolean autoUpdate, Filter filter, boolean invertFilter, String folder, CaseInsensitiveString name) {
+    public HgMaterialConfig(HgUrlArgument url, String userName, String password, String branch, boolean autoUpdate, Filter filter,
+                            boolean invertFilter, String folder, CaseInsensitiveString name) {
         super(name, filter, invertFilter, folder, autoUpdate, TYPE, new ConfigErrors());
         this.url = url;
+        this.userName = userName;
+        this.branch = branch;
+        setPassword(password);
     }
 
     @Override
@@ -72,6 +78,14 @@ public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttribu
         if (url != null) {
             this.url = new HgUrlArgument(url);
         }
+    }
+
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(String branch) {
+        this.branch = branch;
     }
 
     @Override
