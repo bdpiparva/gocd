@@ -31,10 +31,12 @@ import com.thoughtworks.go.util.command.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +45,8 @@ import static com.thoughtworks.go.util.ExceptionUtils.bomb;
 import static com.thoughtworks.go.util.ExceptionUtils.bombIfFailedToRunCommandLine;
 import static com.thoughtworks.go.util.FileUtil.createParentFolderIfNotExist;
 import static java.lang.String.format;
+import static org.apache.commons.lang3.StringUtils.isAllBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
  * @understands configuration for mercurial version control
@@ -60,7 +64,7 @@ public class HgMaterial extends ScmMaterial {
             "Failed to find 'hg' on your PATH. Please ensure 'hg' is executable by the Go Server and on the Go Agents where this material will be used.";
 
     private final String HG_DEFAULT_BRANCH = "default";
-    private String branch = HG_DEFAULT_BRANCH;
+    private String branch;
 
     private HgMaterial() {
         super(TYPE, new GoCipher());
@@ -80,6 +84,7 @@ public class HgMaterial extends ScmMaterial {
         this.invertFilter = config.getInvertFilter();
         this.name = config.getName();
         this.userName = config.getUserName();
+        this.branch = config.getBranch();
         setPassword(config.getPassword());
     }
 
@@ -105,6 +110,14 @@ public class HgMaterial extends ScmMaterial {
     @Override
     protected void appendCriteria(Map<String, Object> parameters) {
         parameters.put(ScmMaterialConfig.URL, url.originalArgument());
+
+        if (isNotBlank(userName)) {
+            parameters.put("username", userName);
+        }
+
+        if (isNotBlank(branch)) {
+            parameters.put("branch", branch);
+        }
     }
 
     @Override
@@ -236,9 +249,23 @@ public class HgMaterial extends ScmMaterial {
 
     @Override
     public String urlForCommandLine() {
-        return url.forCommandLine();
+        try {
+            if (credentialsAreNotProvided()) {
+                return this.url.originalArgument();
+            }
+
+            return new URIBuilder(this.url.originalArgument())
+                    .setUserInfo(new UrlUserInfo(this.userName, this.getPassword()).asString())
+                    .build().toString();
+
+        } catch (URISyntaxException e) {
+            return this.url.originalArgument();
+        }
     }
 
+    private boolean credentialsAreNotProvided() {
+        return isAllBlank(this.userName, this.getPassword());
+    }
     public UrlArgument getUrlArgument() {
         return url;
     }
@@ -334,6 +361,10 @@ public class HgMaterial extends ScmMaterial {
     }
 
     public String getBranch() {
+        if(isNotBlank(branch)) {
+            return branch;
+        }
+
         return getBranchFromUrl(url.originalArgument());
     }
 

@@ -440,24 +440,25 @@ public class HgMaterialTest {
     class Fingerprint {
         @Test
         void shouldGenerateFingerprintForGivenMaterialUrl() {
-            HgMaterial HgMaterial = new HgMaterial("https://bob:pass@github.com/gocd", "dest");
+            HgMaterial hgMaterial = new HgMaterial("https://bob:pass@github.com/gocd##feature", "dest");
 
-            assertThat(HgMaterial.getFingerprint()).isEqualTo("027675d28ace7ecc7195d3dd17002a152a6d93721c3793c769171fadef13b7a1");
+            assertThat(hgMaterial.getFingerprint()).isEqualTo("e47f18ffc2dba81e6ec75bfa50f95936415d4f4f0efb4ca285f04fce7a0310cb");
         }
 
         @Test
-        void shouldGenerateFingerprintForGivenMaterialUrlAndBranch() {
-            HgMaterial HgMaterial = new HgMaterial("https://bob:pass@github.com/gocd", "dest");
+        void shouldConsiderBranchWhileGeneratingFingerprint_IfBranchSpecifiedAsAnAttribute() {
+            HgMaterial hgMaterial = new HgMaterial("https://bob:pass@github.com/gocd", "dest");
+            hgMaterial.setBranch("feature");
 
-            assertThat(HgMaterial.getFingerprint()).isEqualTo("755da7fb7415c8674bdf5f8a4ba48fc3e071e5de429b1308ccf8949d215bdb08");
+            assertThat(hgMaterial.getFingerprint()).isEqualTo("db13278ed2b804fc5664361103bcea3d7f5106879683085caed4311aa4d2f888");
         }
 
         @Test
-        void shouldIncludeUsernameAttributeInFingerprintIfPresent() {
-            HgMaterial HgMaterial = new HgMaterial("https://github.com/gocd", "dest");
-            HgMaterial.setUserName("bob");
+        void shouldConsiderUserNameWhileGeneratingFingerprint_IfUserNameSpecifiedAsAnAttribute() {
+            HgMaterial hgMaterial = new HgMaterial("https://github.com/gocd", "dest");
+            hgMaterial.setUserName("bob");
 
-            assertThat(HgMaterial.getFingerprint()).isEqualTo("6c5c5ef53a996d982bff772eb0ffbe7cb7f626d54407cad1440f50e6711c4272");
+            assertThat(hgMaterial.getFingerprint()).isEqualTo("aac496fb490cf99dcdb9a88c8bac5fb9cad5774a1ee074f74bd9e85ff2084685");
         }
 
         @Test
@@ -473,7 +474,7 @@ public class HgMaterialTest {
         }
 
         @Test
-        void shouldGenerateDifferentFingerprintWhenCredentialsArePartOfURLOrSpecifiedAsAttribute() {
+        void userNameInUrlShouldGenerateFingerprintWhichIsOtherFromUserNameInAttribute() {
             HgMaterial hgMaterialWithCredentialsInUrl = new HgMaterial("https://bob@github.com/gocd", "dest");
 
             HgMaterial hgMaterialWithCredentialsAsAttribute = new HgMaterial("https://github.com/gocd", "dest");
@@ -483,26 +484,89 @@ public class HgMaterialTest {
                     .isNotEqualTo(hgMaterialWithCredentialsAsAttribute.getFingerprint());
 
         }
+
+        @Test
+        void branchInUrlShouldGenerateFingerprintWhichIsOtherFromBranchInAttribute() {
+            HgMaterial hgMaterialWithBranchInUrl = new HgMaterial("https://github.com/gocd##feature", "dest");
+
+            HgMaterial hgMaterialWithBranchAsAttribute = new HgMaterial("https://github.com/gocd", "dest");
+            hgMaterialWithBranchAsAttribute.setBranch("feature");
+
+            assertThat(hgMaterialWithBranchInUrl.getFingerprint())
+                    .isNotEqualTo(hgMaterialWithBranchAsAttribute.getFingerprint());
+        }
+        @Nested
+        class fingerPrintComparisionBetweenHgMaterialAndHgMaterialConfig {
+            @Test
+            void fingerprintGeneratedByHgMaterialAndHgMaterialConfigShouldBeSame() {
+                HgMaterial hgMaterial = new HgMaterial("https://github.com/gocd##feature", "dest");
+
+                assertThat(hgMaterial.getFingerprint()).isEqualTo(hgMaterial.config().getFingerprint());
+            }
+
+            @Test
+            void fingerprintGeneratedByHgMaterialAndHgMaterialConfigShouldBeSameWhenUserNameProvidedAsAttribute() {
+                HgMaterial hgMaterial = new HgMaterial("https://github.com/gocd##feature", "dest");
+                hgMaterial.setUserName("bob");
+
+                assertThat(hgMaterial.getFingerprint()).isEqualTo(hgMaterial.config().getFingerprint());
+            }
+
+            @Test
+            void fingerprintGeneratedByHgMaterialAndHgMaterialConfigShouldBeSameWhenBranchProvidedAsAttribute() {
+                HgMaterial hgMaterial = new HgMaterial("https://github.com/gocd", "dest");
+                hgMaterial.setUserName("bob");
+                hgMaterial.setBranch("feature");
+
+                assertThat(hgMaterial.getFingerprint()).isEqualTo(hgMaterial.config().getFingerprint());
+            }
+        }
     }
 
+    @Nested
+    class getBranch {
+        @Test
+        void shouldBeTheBranchAttributeIfSpecified() {
+            HgMaterial hgMaterial = new HgMaterial("https://github.com/gocd", "dest");
+            hgMaterial.setBranch("feature");
+
+            assertThat(hgMaterial.getBranch()).isEqualTo("feature");
+        }
+
+        @Test
+        void shouldBeBranchFromUrlIfBranchNotSpecifedAsAttribute() {
+            HgMaterial hgMaterial = new HgMaterial("https://github.com/gocd##from_url", "dest");
+
+            assertThat(hgMaterial.getBranch()).isEqualTo("from_url");
+        }
+
+        @Test
+        void shouldBeDefaultBranchIfBranchNotSpecified() {
+            HgMaterial hgMaterial = new HgMaterial("https://github.com/gocd", "dest");
+
+            assertThat(hgMaterial.getBranch()).isEqualTo("default");
+        }
+    }
+    
     @Nested
     class ConfigToMaterial {
         @Test
         void shouldBuildFromConfigObject() {
             final HgMaterialConfig materialConfig = new HgMaterialConfig(new HgUrlArgument("http://example.com"), "bob", "pass",
-                    "master", true, Filter.create("igrnored"), false, "destination",
+                    "feature", true, Filter.create("igrnored"), false, "destination",
                     new CaseInsensitiveString("example"));
 
-            final HgMaterial HgMaterial = new HgMaterial(materialConfig);
+            final HgMaterial hgMaterial = new HgMaterial(materialConfig);
 
-            assertThat(HgMaterial.getUrl()).isEqualTo(materialConfig.getUrl());
-            assertThat(HgMaterial.getUserName()).isEqualTo(materialConfig.getUserName());
-            assertThat(HgMaterial.getPassword()).isEqualTo(materialConfig.getPassword());
-            assertThat(HgMaterial.getBranch()).isEqualTo(materialConfig.getBranch());
-            assertThat(HgMaterial.getAutoUpdate()).isEqualTo(materialConfig.getAutoUpdate());
-            assertThat(HgMaterial.getInvertFilter()).isEqualTo(materialConfig.getInvertFilter());
-            assertThat(HgMaterial.getFolder()).isEqualTo(materialConfig.getFolder());
-            assertThat(HgMaterial.getName()).isEqualTo(materialConfig.getName());
+            assertThat(hgMaterial.getUrl()).isEqualTo(materialConfig.getUrl());
+            assertThat(hgMaterial.getUserName()).isEqualTo(materialConfig.getUserName());
+            assertThat(hgMaterial.getPassword()).isEqualTo(materialConfig.getPassword());
+            assertThat(hgMaterial.getBranch()).isEqualTo(materialConfig.getBranch());
+            assertThat(hgMaterial.getAutoUpdate()).isEqualTo(materialConfig.getAutoUpdate());
+            assertThat(hgMaterial.getInvertFilter()).isEqualTo(materialConfig.getInvertFilter());
+            assertThat(hgMaterial.getFolder()).isEqualTo(materialConfig.getFolder());
+            assertThat(hgMaterial.getName()).isEqualTo(materialConfig.getName());
+            assertThat(hgMaterial.getFingerprint()).isEqualTo(materialConfig.getFingerprint());
         }
     }
 
@@ -510,106 +574,78 @@ public class HgMaterialTest {
     class MaterialToConfig {
         @Test
         void shouldBuildConfigFromMaterialObject() {
-            final HgMaterial HgMaterial = new HgMaterial("http://example.com", "destination");
-            HgMaterial.setUserName("bob");
-            HgMaterial.setPassword("pass");
-            HgMaterial.setAutoUpdate(true);
-            HgMaterial.setName(new CaseInsensitiveString("example"));
-            HgMaterial.setInvertFilter(true);
-            HgMaterial.setFolder("destination");
-            HgMaterial.setFilter(Filter.create("whitelist"));
+            final HgMaterial hgMaterial = new HgMaterial("http://example.com", "destination");
+            hgMaterial.setUserName("bob");
+            hgMaterial.setPassword("pass");
+            hgMaterial.setBranch("feature");
+            hgMaterial.setAutoUpdate(true);
+            hgMaterial.setName(new CaseInsensitiveString("example"));
+            hgMaterial.setInvertFilter(true);
+            hgMaterial.setFolder("destination");
+            hgMaterial.setFilter(Filter.create("whitelist"));
 
-            final HgMaterialConfig materialConfig = (HgMaterialConfig) HgMaterial.config();
+            final HgMaterialConfig materialConfig = (HgMaterialConfig) hgMaterial.config();
 
-            assertThat(HgMaterial.getUrl()).isEqualTo(materialConfig.getUrl());
-            assertThat(HgMaterial.getUserName()).isEqualTo(materialConfig.getUserName());
-            assertThat(HgMaterial.getPassword()).isEqualTo(materialConfig.getPassword());
-            assertThat(HgMaterial.getBranch()).isEqualTo(materialConfig.getBranch());
-            assertThat(HgMaterial.getAutoUpdate()).isEqualTo(materialConfig.getAutoUpdate());
-            assertThat(HgMaterial.getInvertFilter()).isEqualTo(materialConfig.getInvertFilter());
-            assertThat(HgMaterial.getFolder()).isEqualTo(materialConfig.getFolder());
-            assertThat(HgMaterial.getName()).isEqualTo(materialConfig.getName());
+            assertThat(hgMaterial.getUrl()).isEqualTo(materialConfig.getUrl());
+            assertThat(hgMaterial.getUserName()).isEqualTo(materialConfig.getUserName());
+            assertThat(hgMaterial.getPassword()).isEqualTo(materialConfig.getPassword());
+            assertThat(hgMaterial.getBranch()).isEqualTo(materialConfig.getBranch());
+            assertThat(hgMaterial.getAutoUpdate()).isEqualTo(materialConfig.getAutoUpdate());
+            assertThat(hgMaterial.getInvertFilter()).isEqualTo(materialConfig.getInvertFilter());
+            assertThat(hgMaterial.getFolder()).isEqualTo(materialConfig.getFolder());
+            assertThat(hgMaterial.getName()).isEqualTo(materialConfig.getName());
+            assertThat(hgMaterial.getFingerprint()).isEqualTo(materialConfig.getFingerprint());
         }
     }
 
     @Nested
     class urlForCommandLine {
         @Test
-        void shouldBeTheConfiguredUrlForTheMaterial() {
-            final HgMaterial HgMaterial = new HgMaterial("http://bob:pass@exampele.com", "destination");
+        void shouldBeSameAsTheConfiguredUrlForTheMaterial() {
+            final HgMaterial hgMaterial = new HgMaterial("http://bob:pass@exampele.com", "destination");
 
-            assertThat(HgMaterial.urlForCommandLine()).isEqualTo("http://bob:pass@exampele.com");
+            assertThat(hgMaterial.urlForCommandLine()).isEqualTo("http://bob:pass@exampele.com");
+        }
+
+        @Test
+        void shouldSanitizeUrlIfUrlContainsBranch() {
+            final HgMaterial hgMaterial = new HgMaterial("http://bob:pass@exampele.com##feature", "destination");
+
+            assertThat(hgMaterial.urlForCommandLine()).isEqualTo("http://bob:pass@exampele.com#feature");
         }
 
         @Test
         void shouldIncludeUserInfoIfProvidedAsUsernameAndPasswordAttributes() {
-            final HgMaterial HgMaterial = new HgMaterial("http://exampele.com", "destination");
-            HgMaterial.setUserName("bob");
-            HgMaterial.setPassword("pass");
+            final HgMaterial hgMaterial = new HgMaterial("http://exampele.com", "destination");
+            hgMaterial.setUserName("bob");
+            hgMaterial.setPassword("pass");
 
-            assertThat(HgMaterial.urlForCommandLine()).isEqualTo("http://bob:pass@exampele.com");
+            assertThat(hgMaterial.urlForCommandLine()).isEqualTo("http://bob:pass@exampele.com");
         }
 
         @Test
         void shouldIncludeUserNameIfProvidedAsUsernameAttributes() {
-            final HgMaterial HgMaterial = new HgMaterial("http://exampele.com", "destination");
-            HgMaterial.setUserName("bob");
+            final HgMaterial hgMaterial = new HgMaterial("http://exampele.com", "destination");
+            hgMaterial.setUserName("bob");
 
-            assertThat(HgMaterial.urlForCommandLine()).isEqualTo("http://bob@exampele.com");
+            assertThat(hgMaterial.urlForCommandLine()).isEqualTo("http://bob@exampele.com");
         }
 
         @Test
-        void shouldIncludePasswordIfProvidedAsPasswordAttributes() {
-            final HgMaterial HgMaterial = new HgMaterial("http://exampele.com", "destination");
-            HgMaterial.setPassword("pass");
+        void shouldIncludePasswordIfProvidedAsPasswordAttribute() {
+            final HgMaterial hgMaterial = new HgMaterial("http://exampele.com", "destination");
+            hgMaterial.setPassword("pass");
 
-            assertThat(HgMaterial.urlForCommandLine()).isEqualTo("http://:pass@exampele.com");
+            assertThat(hgMaterial.urlForCommandLine()).isEqualTo("http://:pass@exampele.com");
         }
 
         @Test
         void shouldEncodeUserInfoIfProvidedAsUsernamePasswordAttributes() {
-            final HgMaterial HgMaterial = new HgMaterial("http://exampele.com", "destination");
-            HgMaterial.setUserName("bob@example.com");
-            HgMaterial.setPassword("p@ssw:rd");
+            final HgMaterial hgMaterial = new HgMaterial("http://exampele.com", "destination");
+            hgMaterial.setUserName("bob@example.com");
+            hgMaterial.setPassword("p@ssw:rd");
 
-            assertThat(HgMaterial.urlForCommandLine()).isEqualTo("http://bob%40example.com:p%40ssw:rd@exampele.com");
-        }
-    }
-
-    @Nested
-    class hasSecretParams {
-        @Test
-        void shouldBeTrueIfMaterialUrlHasSecretParams() {
-            HgMaterial git = new HgMaterial("http://username:{{SECRET:[secret_config_id][lookup_password]}}@foo.com", null);
-
-            assertThat(git.hasSecretParams()).isTrue();
-        }
-
-        @Test
-        void shouldBeFalseInMaterialUrlDoesNotHaveSecretParams() {
-            HgMaterial git = new HgMaterial("http://username:password@foo.com", null);
-
-            assertThat(git.hasSecretParams()).isFalse();
-        }
-    }
-
-    @Nested
-    class getSecretParams {
-        @Test
-        void shouldReturnAListOfSecretParams() {
-            HgMaterial git = new HgMaterial("http://username:{{SECRET:[secret_config_id][lookup_password]}}@foo.com", null);
-
-            assertThat(git.getSecretParams())
-                    .hasSize(1)
-                    .contains(new SecretParam("secret_config_id", "lookup_password"));
-        }
-
-        @Test
-        void shouldBeAnEmptyListInAbsenceOfSecretParamsinMaterialUrl() {
-            HgMaterial git = new HgMaterial("http://username:password@foo.com", null);
-
-            assertThat(git.getSecretParams())
-                    .hasSize(0);
+            assertThat(hgMaterial.urlForCommandLine()).isEqualTo("http://bob%40example.com:p%40ssw:rd@exampele.com");
         }
     }
 }

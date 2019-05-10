@@ -24,11 +24,14 @@ import com.thoughtworks.go.util.command.HgUrlArgument;
 
 import java.util.Map;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 @ConfigTag(value = "hg", label = "Mercurial")
 public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttributeAware {
     @ConfigAttribute(value = "url")
     private HgUrlArgument url;
-    private String userName;
+
+    @ConfigAttribute(value = "branch", allowNull = true)
     private String branch;
 
     public static final String TYPE = "HgMaterial";
@@ -56,6 +59,14 @@ public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttribu
     @Override
     protected void appendCriteria(Map<String, Object> parameters) {
         parameters.put(ScmMaterialConfig.URL, this.url.originalArgument());
+
+        if (isNotBlank(userName)) {
+            parameters.put("username", userName);
+        }
+
+        if (isNotBlank(branch)) {
+            parameters.put("branch", branch);
+        }
     }
 
     @Override
@@ -111,6 +122,14 @@ public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttribu
             return false;
         }
 
+        if (userName != null ? !userName.equals(that.userName) : that.userName != null) {
+            return false;
+        }
+
+        if (branch != null ? !branch.equals(that.branch) : that.branch != null) {
+            return false;
+        }
+
         return true;
     }
 
@@ -118,6 +137,8 @@ public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttribu
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (url != null ? url.hashCode() : 0);
+        result = 31 * result + (userName != null ? userName.hashCode() : 0);
+        result = 31 * result + (branch != null ? branch.hashCode() : 0);
         return result;
     }
 

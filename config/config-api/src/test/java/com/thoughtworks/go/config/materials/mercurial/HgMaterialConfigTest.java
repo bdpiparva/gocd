@@ -23,6 +23,7 @@ import com.thoughtworks.go.config.materials.IgnoredFiles;
 import com.thoughtworks.go.config.materials.ScmMaterialConfig;
 import com.thoughtworks.go.security.GoCipher;
 import com.thoughtworks.go.util.ReflectionUtil;
+import com.thoughtworks.go.util.command.HgUrlArgument;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -144,6 +145,92 @@ class HgMaterialConfigTest {
         config.setUrl(null);
 
         assertThat(config.getUrl()).isNull();
+    }
+
+    @Nested
+    class Equals {
+        @Test
+        void shouldBeEqualIfObjectsHaveSameUrlBranchAndUserName() {
+            final HgMaterialConfig material_1 = new HgMaterialConfig("http://example.com", "master");
+            material_1.setUserName("bob");
+            material_1.setBranch("feature");
+
+            final HgMaterialConfig material_2 = new HgMaterialConfig("http://example.com", "master");
+            material_2.setUserName("bob");
+            material_2.setBranch("feature");
+
+            assertThat(material_1.equals(material_2)).isTrue();
+        }
+
+        @Test
+        void shouldBeEqualIfObjectsHaveSameUrl_ButNoUserNameAndBranch() {
+            final HgMaterialConfig material_1 = new HgMaterialConfig("http://example.com", "master");
+
+            final HgMaterialConfig material_2 = new HgMaterialConfig("http://example.com", "master");
+
+            assertThat(material_1.equals(material_2)).isTrue();
+        }
+    }
+
+    @Nested
+    class Fingerprint {
+        @Test
+        void shouldGenerateFingerprintForGivenMaterialUrl() {
+            HgMaterialConfig hgMaterialConfig = new HgMaterialConfig("https://bob:pass@github.com/gocd##feature", "dest");
+
+            assertThat(hgMaterialConfig.getFingerprint()).isEqualTo("e47f18ffc2dba81e6ec75bfa50f95936415d4f4f0efb4ca285f04fce7a0310cb");
+        }
+
+        @Test
+        void shouldConsiderBranchWhileGeneratingFingerprint_IfBranchSpecifiedAsAnAttribute() {
+            HgMaterialConfig hgMaterialConfig = new HgMaterialConfig("https://bob:pass@github.com/gocd", "dest");
+            hgMaterialConfig.setBranch("feature");
+
+            assertThat(hgMaterialConfig.getFingerprint()).isEqualTo("db13278ed2b804fc5664361103bcea3d7f5106879683085caed4311aa4d2f888");
+        }
+
+        @Test
+        void shouldConsiderUserNameWhileGeneratingFingerprint_IfUserNameSpecifiedAsAnAttribute() {
+            HgMaterialConfig hgMaterialConfig = new HgMaterialConfig("https://github.com/gocd", "dest");
+            hgMaterialConfig.setUserName("bob");
+
+            assertThat(hgMaterialConfig.getFingerprint()).isEqualTo("aac496fb490cf99dcdb9a88c8bac5fb9cad5774a1ee074f74bd9e85ff2084685");
+        }
+
+        @Test
+        void shouldNotConsiderPasswordAttributesForGeneratingFingerPrint() {
+            HgMaterialConfig withoutPassword = new HgMaterialConfig("https://github.com/gocd", "dest");
+            withoutPassword.setUserName("bob");
+
+            HgMaterialConfig withPassword = new HgMaterialConfig("https://github.com/gocd", "dest");
+            withPassword.setUserName("bob");
+            withPassword.setPassword("pass");
+
+            assertThat(withoutPassword.getFingerprint()).isEqualTo(withPassword.getFingerprint());
+        }
+
+        @Test
+        void userNameInUrlShouldGenerateFingerprintWhichIsOtherFromUserNameInAttribute() {
+            HgMaterialConfig hgMaterialConfigWithCredentialsInUrl = new HgMaterialConfig("https://bob@github.com/gocd", "dest");
+
+            HgMaterialConfig hgMaterialConfigWithCredentialsAsAttribute = new HgMaterialConfig("https://github.com/gocd", "dest");
+            hgMaterialConfigWithCredentialsAsAttribute.setUserName("bob");
+
+            assertThat(hgMaterialConfigWithCredentialsInUrl.getFingerprint())
+                    .isNotEqualTo(hgMaterialConfigWithCredentialsAsAttribute.getFingerprint());
+
+        }
+
+        @Test
+        void branchInUrlShouldGenerateFingerprintWhichIsOtherFromBranchInAttribute() {
+            HgMaterialConfig hgMaterialConfigWithBranchInUrl = new HgMaterialConfig("https://github.com/gocd##feature", "dest");
+
+            HgMaterialConfig hgMaterialConfigWithBranchAsAttribute = new HgMaterialConfig("https://github.com/gocd", "dest");
+            hgMaterialConfigWithBranchAsAttribute.setBranch("feature");
+
+            assertThat(hgMaterialConfigWithBranchInUrl.getFingerprint())
+                    .isNotEqualTo(hgMaterialConfigWithBranchAsAttribute.getFingerprint());
+        }
     }
 
     @Nested
