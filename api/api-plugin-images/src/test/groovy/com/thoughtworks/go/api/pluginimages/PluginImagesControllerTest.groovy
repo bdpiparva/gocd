@@ -52,7 +52,7 @@ class PluginImagesControllerTest implements ControllerTrait<SparkController> {
     @Test
     void 'should render an image with a hash and a long lived cache header'() {
       def image = new Image('image/foo', Base64.encoder.encodeToString('some-image-data'.getBytes(UTF_8)), SecureRandom.hex(32))
-      def pluginInfo = new CombinedPluginInfo(new AuthorizationPluginInfo(null, null, null, image, null))
+      def pluginInfo = new CombinedPluginInfo(new AuthorizationPluginInfo(null, null, null, null, image, null))
       when(defaultPluginInfoFinder.pluginInfoFor('foo')).thenReturn(pluginInfo)
 
       get(controller.controllerPath("/foo/${image.getHash()}"))
@@ -67,7 +67,7 @@ class PluginImagesControllerTest implements ControllerTrait<SparkController> {
     @Test
     void 'should render 304 when etag matches'() {
       def image = new Image('image/foo', Base64.getEncoder().encodeToString('some-image-data'.getBytes(UTF_8)), SecureRandom.hex(32))
-      def pluginInfo = new CombinedPluginInfo(new AuthorizationPluginInfo(null, null, null, image, null))
+      def pluginInfo = new CombinedPluginInfo(new AuthorizationPluginInfo(null, null, null, null, image, null))
       when(defaultPluginInfoFinder.pluginInfoFor('foo')).thenReturn(pluginInfo)
 
       get(controller.controllerPath("/foo/${image.getHash()}"), ['if-none-match': $/"${image.getHash()}"/$])
@@ -91,7 +91,7 @@ class PluginImagesControllerTest implements ControllerTrait<SparkController> {
     @Test
     void 'renders 404 when hash does not match'() {
       def image = new Image('image/foo', Base64.getEncoder().encodeToString('some-image-data'.getBytes(UTF_8)), SecureRandom.hex(32))
-      def pluginInfo = new CombinedPluginInfo(new AuthorizationPluginInfo(null, null, null, image, null))
+      def pluginInfo = new CombinedPluginInfo(new AuthorizationPluginInfo(null, null, null, null, image, null))
       when(defaultPluginInfoFinder.pluginInfoFor('foo')).thenReturn(pluginInfo)
 
       get(controller.controllerPath("/foo/random-hash"))

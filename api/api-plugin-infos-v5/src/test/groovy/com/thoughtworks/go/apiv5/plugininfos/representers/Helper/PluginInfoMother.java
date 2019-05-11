@@ -29,33 +29,31 @@ import com.thoughtworks.go.plugin.domain.notification.NotificationPluginInfo;
 import com.thoughtworks.go.plugin.domain.packagematerial.PackageMaterialPluginInfo;
 import com.thoughtworks.go.plugin.domain.pluggabletask.PluggableTaskPluginInfo;
 import com.thoughtworks.go.plugin.domain.scm.SCMPluginInfo;
-import com.thoughtworks.go.plugin.domain.secrets.SecretsPluginInfo;
 import com.thoughtworks.go.plugin.infra.plugininfo.GoPluginDescriptor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class PluginInfoMother {
     public static AuthorizationPluginInfo createAuthorizationPluginInfo() {
-        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true);
-        return new AuthorizationPluginInfo(getGoPluginDescriptor(), getPluggableSettings(), getPluggableSettings(), new Image("content_type", "data", "hash"), capabilities);
+        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true, false);
+        return new AuthorizationPluginInfo(getGoPluginDescriptor(), getPluggableSettings(), getPluggableSettings(), null, new Image("content_type", "data", "hash"), capabilities);
     }
 
     public static AuthorizationPluginInfo createAuthorizationPluginInfoWithoutAbout() {
-        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true);
+        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true, false);
         GoPluginDescriptor descriptor = new GoPluginDescriptor("plugin_id", "1", null, "/home/pluginjar/", null, true);
-        return new AuthorizationPluginInfo(descriptor, getPluggableSettings(), null, new Image("content_type", "data", "hash"), capabilities);
+        return new AuthorizationPluginInfo(descriptor, getPluggableSettings(), null, null, new Image("content_type", "data", "hash"), capabilities);
     }
 
     public static AuthorizationPluginInfo createAuthorizationPluginInfoWithoutImage() {
-        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true);
-        return new AuthorizationPluginInfo(getGoPluginDescriptor(), getPluggableSettings(), null, null, capabilities);
+        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true, false);
+        return new AuthorizationPluginInfo(getGoPluginDescriptor(), getPluggableSettings(), null, null, null, capabilities);
     }
 
     public static AuthorizationPluginInfo createAuthorizationPluginInfoWithoutRoleSettings() {
-        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true);
-        return new AuthorizationPluginInfo(getGoPluginDescriptor(), getPluggableSettings(), null, new Image("content_type", "data", "hash"), capabilities);
+        Capabilities capabilities = new Capabilities(SupportedAuthType.Password, true, true, true, false);
+        return new AuthorizationPluginInfo(getGoPluginDescriptor(), getPluggableSettings(), null, null, new Image("content_type", "data", "hash"), capabilities);
     }
 
     public static SCMPluginInfo createSCMPluginInfo() {

@@ -41,9 +41,10 @@ public class AuthorizationPluginInfoBuilder implements PluginInfoBuilder<Authori
 
         PluggableInstanceSettings authConfigSettings = authConfigSettings(descriptor.id());
         PluggableInstanceSettings roleSettings = roleSettings(descriptor.id(), capabilities);
+        PluggableInstanceSettings userAddSettings = userAddSettings(descriptor.id(), capabilities);
         Image image = image(descriptor.id());
 
-        return new AuthorizationPluginInfo(descriptor, authConfigSettings, roleSettings, image, capabilities);
+        return new AuthorizationPluginInfo(descriptor, authConfigSettings, roleSettings, userAddSettings, image, capabilities);
     }
 
     private Capabilities capabilities(String pluginId) {
@@ -59,6 +60,15 @@ public class AuthorizationPluginInfoBuilder implements PluginInfoBuilder<Authori
         if (capabilities.canAuthorize()) {
             return new PluggableInstanceSettings(extension.getRoleConfigurationMetadata(pluginId),
                     new PluginView(extension.getRoleConfigurationView(pluginId)));
+        }
+
+        return null;
+    }
+
+    private PluggableInstanceSettings userAddSettings(String pluginId, Capabilities capabilities) {
+        if (capabilities.supportsAddUser()) {
+            return new PluggableInstanceSettings(extension.getUserAddMetadata(pluginId),
+                    new PluginView(extension.getUserAddView(pluginId)));
         }
 
         return null;

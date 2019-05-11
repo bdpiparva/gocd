@@ -23,6 +23,7 @@ import com.thoughtworks.go.plugin.access.ExtensionsRegistry;
 import com.thoughtworks.go.plugin.access.PluginRequestHelper;
 import com.thoughtworks.go.plugin.access.authorization.v1.AuthorizationMessageConverterV1;
 import com.thoughtworks.go.plugin.access.authorization.v2.AuthorizationMessageConverterV2;
+import com.thoughtworks.go.plugin.access.authorization.v3.AuthorizationMessageConverterV3;
 import com.thoughtworks.go.plugin.access.common.AbstractExtension;
 import com.thoughtworks.go.plugin.access.common.settings.PluginSettingsJsonMessageHandler;
 import com.thoughtworks.go.plugin.access.common.settings.PluginSettingsJsonMessageHandler1_0;
@@ -53,6 +54,8 @@ public class AuthorizationExtension extends AbstractExtension {
         addHandler(AuthorizationMessageConverterV1.VERSION, new PluginSettingsJsonMessageHandler1_0(), new AuthorizationMessageConverterV1()
         );
         addHandler(AuthorizationMessageConverterV2.VERSION, new PluginSettingsJsonMessageHandler1_0(), new AuthorizationMessageConverterV2()
+        );
+        addHandler(AuthorizationMessageConverterV3.VERSION, new PluginSettingsJsonMessageHandler1_0(), new AuthorizationMessageConverterV3()
         );
     }
 
@@ -294,5 +297,37 @@ public class AuthorizationExtension extends AbstractExtension {
     @Override
     public List<String> goSupportedVersions() {
         return SUPPORTED_VERSIONS;
+    }
+
+    List<PluginConfiguration> getUserAddMetadata(String pluginId) {
+        return pluginRequestHelper.submitRequest(pluginId, REQUEST_GET_ADD_USER_METADATA, new DefaultPluginInteractionCallback<List<PluginConfiguration>>() {
+            @Override
+            public List<PluginConfiguration> onSuccess(String responseBody, Map<String, String> responseHeaders, String resolvedExtensionVersion) {
+                return getMessageConverter(resolvedExtensionVersion).getPluginConfigMetadataResponseFromBody(responseBody);
+            }
+        });
+    }
+
+    String getUserAddView(String pluginId) {
+        return pluginRequestHelper.submitRequest(pluginId, REQUEST_GET_ADD_USER_VIEW, new DefaultPluginInteractionCallback<String>() {
+            @Override
+            public String onSuccess(String responseBody, Map<String, String> responseHeaders, String resolvedExtensionVersion) {
+                return getMessageConverter(resolvedExtensionVersion).getPluginConfigurationViewFromResponseBody(responseBody);
+            }
+        });
+    }
+
+    String addUser(String pluginId, Map<String, String> configuration) {
+        return pluginRequestHelper.submitRequest(pluginId, REQUEST_ADD_USER, new DefaultPluginInteractionCallback<String>() {
+            @Override
+            public String requestBody(String resolvedExtensionVersion) {
+                return getMessageConverter(resolvedExtensionVersion).addUserRequestBody(configuration);
+            }
+
+            @Override
+            public String onSuccess(String responseBody, Map<String, String> responseHeaders, String resolvedExtensionVersion) {
+                return getMessageConverter(resolvedExtensionVersion).getPluginConfigurationViewFromResponseBody(responseBody);
+            }
+        });
     }
 }

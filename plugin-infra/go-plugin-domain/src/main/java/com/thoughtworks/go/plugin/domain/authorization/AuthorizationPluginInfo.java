@@ -22,16 +22,20 @@ import com.thoughtworks.go.plugin.domain.common.PluggableInstanceSettings;
 import com.thoughtworks.go.plugin.domain.common.PluginConstants;
 import com.thoughtworks.go.plugin.domain.common.PluginInfo;
 
+import java.util.Objects;
+
 public class AuthorizationPluginInfo extends PluginInfo {
     private final PluggableInstanceSettings authConfigSettings;
     private final PluggableInstanceSettings roleSettings;
+    private final PluggableInstanceSettings userAddSettings;
     private final Capabilities capabilities;
 
     public AuthorizationPluginInfo(PluginDescriptor descriptor, PluggableInstanceSettings authConfigSettings,
-                                   PluggableInstanceSettings roleSettings, Image image, Capabilities capabilities) {
+                                   PluggableInstanceSettings roleSettings, PluggableInstanceSettings userAddSettings, Image image, Capabilities capabilities) {
         super(descriptor, PluginConstants.AUTHORIZATION_EXTENSION, null, image);
         this.authConfigSettings = authConfigSettings;
         this.roleSettings = roleSettings;
+        this.userAddSettings = userAddSettings;
         this.capabilities = capabilities;
     }
 
@@ -43,6 +47,10 @@ public class AuthorizationPluginInfo extends PluginInfo {
         return roleSettings;
     }
 
+    public PluggableInstanceSettings getUserAddSettings() {
+        return userAddSettings;
+    }
+
     public Capabilities getCapabilities() {
         return capabilities;
     }
@@ -51,25 +59,16 @@ public class AuthorizationPluginInfo extends PluginInfo {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
+        if (!super.equals(o)) return false;
         AuthorizationPluginInfo that = (AuthorizationPluginInfo) o;
-
-        if (authConfigSettings != null ? !authConfigSettings.equals(that.authConfigSettings) : that.authConfigSettings != null)
-            return false;
-        if (roleSettings != null ? !roleSettings.equals(that.roleSettings) : that.roleSettings != null) return false;
-        if (image != null ? !image.equals(that.image) : that.image != null) return false;
-        if (capabilities != null ? !capabilities.equals(that.capabilities) : that.capabilities != null) return false;
-        return super.equals(that);
+        return Objects.equals(authConfigSettings, that.authConfigSettings) &&
+                Objects.equals(roleSettings, that.roleSettings) &&
+                Objects.equals(userAddSettings, that.userAddSettings) &&
+                Objects.equals(capabilities, that.capabilities);
     }
 
     @Override
     public int hashCode() {
-        int result = authConfigSettings != null ? authConfigSettings.hashCode() : 0;
-        result = 31 * result + (roleSettings != null ? roleSettings.hashCode() : 0);
-        result = 31 * result + (image != null ? image.hashCode() : 0);
-        result = 31 * result + (capabilities != null ? capabilities.hashCode() : 0);
-        return result;
+        return Objects.hash(super.hashCode(), authConfigSettings, roleSettings, userAddSettings, capabilities);
     }
-
-
 }

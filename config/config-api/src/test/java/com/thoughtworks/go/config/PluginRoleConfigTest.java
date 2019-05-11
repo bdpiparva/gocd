@@ -360,8 +360,8 @@ public class PluginRoleConfigTest {
         PluggableInstanceSettings authConfigSettins = new PluggableInstanceSettings(asList(k1, k2, k3));
         PluggableInstanceSettings roleConfigSettings = new PluggableInstanceSettings(asList(k1, k2, k3));
 
-        com.thoughtworks.go.plugin.domain.authorization.Capabilities capabilities = new com.thoughtworks.go.plugin.domain.authorization.Capabilities(SupportedAuthType.Web, true, true, true);
-        AuthorizationPluginInfo artifactPluginInfo = new AuthorizationPluginInfo(pluginDescriptor, authConfigSettins, roleConfigSettings, null, capabilities);
+        com.thoughtworks.go.plugin.domain.authorization.Capabilities capabilities = new com.thoughtworks.go.plugin.domain.authorization.Capabilities(SupportedAuthType.Web, true, true, true, false);
+        AuthorizationPluginInfo artifactPluginInfo = new AuthorizationPluginInfo(pluginDescriptor, authConfigSettins, roleConfigSettings, null, null, capabilities);
         when(pluginDescriptor.id()).thenReturn("cd.go.github");
         AuthorizationMetadataStore.instance().setPluginInfo(artifactPluginInfo);
     }

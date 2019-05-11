@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.thoughtworks.go.plugin.access.authorization.v1;
+package com.thoughtworks.go.plugin.access.authorization.v3;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.thoughtworks.go.config.PluginRoleConfig;
 import com.thoughtworks.go.config.SecurityAuthConfig;
 import com.thoughtworks.go.plugin.access.authorization.AuthorizationMessageConverter;
+import com.thoughtworks.go.plugin.access.authorization.v2.AuthorizationMessageConverterV2;
 import com.thoughtworks.go.plugin.access.common.handler.JSONResultMessageHandler;
 import com.thoughtworks.go.plugin.access.common.models.ImageDeserializer;
 import com.thoughtworks.go.plugin.access.common.models.PluginProfileMetadataKeys;
@@ -35,8 +36,8 @@ import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class AuthorizationMessageConverterV1 implements AuthorizationMessageConverter {
-    public static final String VERSION = "1.0";
+public class AuthorizationMessageConverterV3 extends AuthorizationMessageConverterV2 {
+    public static final String VERSION = "3.0";
     private static final Gson GSON = new Gson();
 
     @Override
@@ -127,17 +128,21 @@ public class AuthorizationMessageConverterV1 implements AuthorizationMessageConv
         }
 
         for (SecurityAuthConfig securityAuthConfig : authConfigs) {
-            Map<String, Object> authConfig = new HashMap<>();
-            authConfig.put("id", securityAuthConfig.getId());
-            authConfig.put("configuration", securityAuthConfig.getConfigurationAsMap(true));
-            configs.add(authConfig);
+            configs.add(getAuthConfig(securityAuthConfig));
         }
         return configs;
     }
 
+    private Map<String, Object> getAuthConfig(SecurityAuthConfig securityAuthConfig) {
+        Map<String, Object> authConfig = new HashMap<>();
+        authConfig.put("id", securityAuthConfig.getId());
+        authConfig.put("configuration", securityAuthConfig.getConfigurationAsMap(true));
+        return authConfig;
+    }
+
     @Override
     public AuthenticationResponse getAuthenticatedUserFromResponseBody(String responseBody) {
-        return AuthenticationResponseDTO.fromJSON(responseBody).toDomainModel();
+        return createAuthResponse(responseBody);
     }
 
     @Override
@@ -206,8 +211,47 @@ public class AuthorizationMessageConverterV1 implements AuthorizationMessageConv
     }
 
     @Override
+    public String isValidUserRequestBody(String username, SecurityAuthConfig authConfig) {
+        Map<String, Object> requestMap = new HashMap<>();
+        requestMap.put("username", username);
+        requestMap.put("auth_config", getAuthConfig(authConfig));
+
+        return GSON.toJson(requestMap);
+    }
+
+    @Override
+    public String getUserRolesRequestBody(String username, SecurityAuthConfig authConfig, List<PluginRoleConfig> roleConfigs) {
+        Map<String, Object> requestMap = new HashMap<>();
+        requestMap.put("username", username);
+        requestMap.put("auth_config", getAuthConfig(authConfig));
+        requestMap.put("role_configs", getRoleConfigs(roleConfigs));
+
+        return GSON.toJson(requestMap);
+    }
+
+    @Override
+    public List<String> getUserRolesFromResponseBody(String responseBody) {
+        return GSON.fromJson(responseBody, new TypeToken<List<String>>() {
+        }.getType());
+    }
+
+    @Override
+    public String addUserRequestBody(Map<String, String> configuration) {
+        return GSON.toJson(configuration);
+    }
+
+    @Override
     public String authenticateUserRequestBody(String username, List<SecurityAuthConfig> authConfigs, List<PluginRoleConfig> roleConfigs) {
-        return null;
+        Map<String, Object> requestMap = new HashMap<>();
+
+        requestMap.put("username", username);
+        requestMap.put("auth_configs", getAuthConfigs(authConfigs));
+        requestMap.put("role_configs", getRoleConfigs(roleConfigs));
+        return GSON.toJson(requestMap);
+    }
+
+    private AuthenticationResponse createAuthResponse(String responseBody) {
+        return AuthenticationResponseDTO.fromJSON(responseBody).toDomainModel();
     }
 
     private String getTemplateFromResponse(String responseBody, String message) {
@@ -216,26 +260,6 @@ public class AuthorizationMessageConverterV1 implements AuthorizationMessageConv
             throw new RuntimeException(message);
         }
         return template;
-    }
-
-    @Override
-    public String isValidUserRequestBody(String username, SecurityAuthConfig authConfig) {
-        throw new UnsupportedOperationException("Authorization Extension v1 does not implement is-valid-user call.");
-    }
-
-    @Override
-    public String getUserRolesRequestBody(String username, SecurityAuthConfig authConfig, List<PluginRoleConfig> roleConfigs) {
-        throw new UnsupportedOperationException("Authorization Extension v1 does not implement get-user-roles call.");
-    }
-
-    @Override
-    public List<String> getUserRolesFromResponseBody(String responseBody) {
-        throw new UnsupportedOperationException("Authorization Extension v1 does not implement get-user-roles call.");
-    }
-
-    @Override
-    public String addUserRequestBody(Map<String, String> configuration) {
-        throw new UnsupportedOperationException("Authorization Extension v1 does not implement add-user call.");
     }
 
     private String authorizationServerCallbackUrl(String pluginId, String siteUrl) {

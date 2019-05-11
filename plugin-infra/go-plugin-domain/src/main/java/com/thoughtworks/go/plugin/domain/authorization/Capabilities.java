@@ -21,12 +21,14 @@ public class Capabilities {
     private final boolean canSearch;
     private final boolean canAuthorize;
     private final boolean canGetUserRoles;
+    private boolean supportsAddUser;
 
-    public Capabilities(SupportedAuthType supportedAuthType, boolean canSearch, boolean canAuthorize, boolean canGetUserRoles) {
+    public Capabilities(SupportedAuthType supportedAuthType, boolean canSearch, boolean canAuthorize, boolean canGetUserRoles, boolean supportsAddUser) {
         this.supportedAuthType = supportedAuthType;
         this.canSearch = canSearch;
         this.canAuthorize = canAuthorize;
         this.canGetUserRoles = canGetUserRoles;
+        this.supportsAddUser = supportsAddUser;
     }
 
     public boolean canGetUserRoles() {
@@ -43,6 +45,10 @@ public class Capabilities {
 
     public boolean canAuthorize() {
         return canAuthorize;
+    }
+
+    public boolean supportsAddUser() {
+        return supportsAddUser;
     }
 
     @Override

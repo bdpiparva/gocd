@@ -31,6 +31,7 @@ public class AuthorizationExtensionRepresenter extends ExtensionRepresenter {
         AuthorizationPluginInfo authorizationExtension = (AuthorizationPluginInfo) extension;
         PluggableInstanceSettings authConfigSettings = authorizationExtension.getAuthConfigSettings();
         PluggableInstanceSettings roleConfigSettings = authorizationExtension.getRoleSettings();
+        PluggableInstanceSettings userAddSettings = authorizationExtension.getUserAddSettings();
 
         extensionWriter.addChild("auth_config_settings", authConfigWriter -> PluggableInstanceSettingsRepresenter.toJSON(authConfigWriter, authConfigSettings));
 
@@ -38,10 +39,15 @@ public class AuthorizationExtensionRepresenter extends ExtensionRepresenter {
             extensionWriter.addChild("role_settings", roleConfigWriter -> PluggableInstanceSettingsRepresenter.toJSON(roleConfigWriter, roleConfigSettings));
         }
 
+        if (userAddSettings != null) {
+            extensionWriter.addChild("user-add-settings", writer -> PluggableInstanceSettingsRepresenter.toJSON(writer, userAddSettings));
+        }
+
         extensionWriter.addChild("capabilities", capabilitiesWriter ->
                 capabilitiesWriter.add("can_search", authorizationExtension.getCapabilities().canSearch())
                         .add("supported_auth_type", authorizationExtension.getCapabilities().getSupportedAuthType().toString())
                         .add("can_authorize", authorizationExtension.getCapabilities().canAuthorize())
+                        .add("supports_add_user", authorizationExtension.getCapabilities().supportsAddUser())
         );
     }
 }

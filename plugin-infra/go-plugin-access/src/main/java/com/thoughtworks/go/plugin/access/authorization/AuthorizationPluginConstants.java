@@ -18,12 +18,13 @@ package com.thoughtworks.go.plugin.access.authorization;
 
 import com.thoughtworks.go.plugin.access.authorization.v1.AuthorizationMessageConverterV1;
 import com.thoughtworks.go.plugin.access.authorization.v2.AuthorizationMessageConverterV2;
+import com.thoughtworks.go.plugin.access.authorization.v3.AuthorizationMessageConverterV3;
 
 import java.util.Arrays;
 import java.util.List;
 
 public interface AuthorizationPluginConstants {
-    List<String> SUPPORTED_VERSIONS = Arrays.asList(AuthorizationMessageConverterV1.VERSION, AuthorizationMessageConverterV2.VERSION);
+    List<String> SUPPORTED_VERSIONS = Arrays.asList(AuthorizationMessageConverterV1.VERSION, AuthorizationMessageConverterV2.VERSION, AuthorizationMessageConverterV3.VERSION);
 
     String REQUEST_PREFIX = "go.cd.authorization";
     String REQUEST_GET_CAPABILITIES = REQUEST_PREFIX + ".get-capabilities";
@@ -32,6 +33,7 @@ public interface AuthorizationPluginConstants {
     String IS_VALID_USER = REQUEST_PREFIX + ".is-valid-user";
 
     String _AUTH_CONFIG_METADATA = "auth-config";
+    String _USER = "user";
     String _ROLE_CONFIG_METADATA = "role-config";
 
     String REQUEST_GET_AUTH_CONFIG_METADATA = String.join(".", REQUEST_PREFIX, _AUTH_CONFIG_METADATA, "get-metadata");
@@ -48,4 +50,8 @@ public interface AuthorizationPluginConstants {
 
     String REQUEST_ACCESS_TOKEN = REQUEST_PREFIX + ".fetch-access-token";
     String REQUEST_AUTHORIZATION_SERVER_URL = REQUEST_PREFIX + ".authorization-server-url";
+
+    String REQUEST_GET_ADD_USER_METADATA = String.join(".", REQUEST_PREFIX, _USER, "add", "get-metadata");
+    String REQUEST_GET_ADD_USER_VIEW = String.join(".", REQUEST_PREFIX, _USER, "add", "get-view");
+    String REQUEST_ADD_USER = String.join(".", REQUEST_PREFIX, _USER, "add");
 }

@@ -89,7 +89,7 @@ public class CombinedPluginInfoTest {
         Image image3 = new Image("c3", "d3", "hash3");
 
         ElasticAgentPluginInfo elasticAgentPluginInfo = new ElasticAgentPluginInfo(null, null, null, image1, null, null);
-        AuthorizationPluginInfo authorizationPluginInfo = new AuthorizationPluginInfo(null, null, null, image2, null);
+        AuthorizationPluginInfo authorizationPluginInfo = new AuthorizationPluginInfo(null, null, null, null, image2, null);
         AnalyticsPluginInfo analyticsPluginInfo = new AnalyticsPluginInfo(null, image3, null, null);
 
         assertThat(new CombinedPluginInfo(elasticAgentPluginInfo).getImage(), is(image1));

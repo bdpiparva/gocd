@@ -351,8 +351,8 @@ class WebBasedPluginAuthenticationProviderTest {
 
     private void addPluginSupportingWebBasedAuthentication(String pluginId) {
         AuthorizationPluginInfo pluginInfo = new AuthorizationPluginInfo(
-                new GoPluginDescriptor(pluginId, null, null, null, null, false), null, null, null,
-                new Capabilities(SupportedAuthType.Web, true, false, false));
+                new GoPluginDescriptor(pluginId, null, null, null, null, false), null, null, null, null,
+                new Capabilities(SupportedAuthType.Web, true, false, false, false));
         AuthorizationMetadataStore.instance().setPluginInfo(pluginInfo);
     }
 }

@@ -64,7 +64,7 @@ class CapabilitiesDTO {
 
     public com.thoughtworks.go.plugin.domain.authorization.Capabilities toDomainModel() {
         com.thoughtworks.go.plugin.domain.authorization.SupportedAuthType supportedAuthType = com.thoughtworks.go.plugin.domain.authorization.SupportedAuthType.valueOf(this.supportedAuthType.name());
-        return new com.thoughtworks.go.plugin.domain.authorization.Capabilities(supportedAuthType, canSearch, canAuthorize, false);
+        return new com.thoughtworks.go.plugin.domain.authorization.Capabilities(supportedAuthType, canSearch, canAuthorize, false, false);
     }
 
     @Override

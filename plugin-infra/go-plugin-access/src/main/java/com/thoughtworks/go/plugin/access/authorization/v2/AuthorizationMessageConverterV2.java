@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class AuthorizationMessageConverterV2 implements AuthorizationMessageConverter {
     public static final String VERSION = "2.0";
-    private static final Gson GSON = new Gson();
+    protected static final Gson GSON = new Gson();
 
     @Override
     public com.thoughtworks.go.plugin.domain.authorization.Capabilities getCapabilitiesFromResponseBody(String responseBody) {
@@ -232,6 +232,11 @@ public class AuthorizationMessageConverterV2 implements AuthorizationMessageConv
     public List<String> getUserRolesFromResponseBody(String responseBody) {
         return GSON.fromJson(responseBody, new TypeToken<List<String>>() {
         }.getType());
+    }
+
+    @Override
+    public String addUserRequestBody(Map<String, String> configuration) {
+        throw new UnsupportedOperationException("Authorization Extension v2 does not implement add-user call.");
     }
 
     @Override

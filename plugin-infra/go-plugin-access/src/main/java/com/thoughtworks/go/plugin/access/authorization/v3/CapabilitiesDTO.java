@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.thoughtworks.go.plugin.access.authorization.v2;
+package com.thoughtworks.go.plugin.access.authorization.v3;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -22,6 +22,8 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import com.thoughtworks.go.plugin.domain.authorization.Capabilities;
 import com.thoughtworks.go.plugin.domain.authorization.SupportedAuthType;
+
+import java.util.Objects;
 
 class CapabilitiesDTO {
     private static final Gson GSON = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
@@ -42,11 +44,16 @@ class CapabilitiesDTO {
     @SerializedName("can_get_user_roles")
     private final boolean canGetUserRoles;
 
-    public CapabilitiesDTO(SupportedAuthTypeDTO supportedAuthType, boolean canSearch, boolean canAuthorize, boolean canGetUserRoles) {
+    @Expose
+    @SerializedName("supports_add_user")
+    private final boolean supportsAddUser;
+
+    public CapabilitiesDTO(SupportedAuthTypeDTO supportedAuthType, boolean canSearch, boolean canAuthorize, boolean canGetUserRoles, boolean supportsAddUser) {
         this.supportedAuthType = supportedAuthType;
         this.canSearch = canSearch;
         this.canAuthorize = canAuthorize;
         this.canGetUserRoles = canGetUserRoles;
+        this.supportsAddUser = supportsAddUser;
     }
 
     public SupportedAuthTypeDTO getSupportedAuthType() {
@@ -69,9 +76,13 @@ class CapabilitiesDTO {
         return canAuthorize;
     }
 
+    public boolean supportsAddUser() {
+        return supportsAddUser;
+    }
+
     public Capabilities toDomainModel() {
         SupportedAuthType supportedAuthType = SupportedAuthType.valueOf(this.supportedAuthType.name());
-        return new Capabilities(supportedAuthType, canSearch, canAuthorize, canGetUserRoles, false);
+        return new Capabilities(supportedAuthType, canSearch, canAuthorize, canGetUserRoles, supportsAddUser);
     }
 
     public boolean canFetchUserRoles() {
@@ -82,21 +93,16 @@ class CapabilitiesDTO {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         CapabilitiesDTO that = (CapabilitiesDTO) o;
-
-        if (canSearch != that.canSearch) return false;
-        if (canAuthorize != that.canAuthorize) return false;
-        if (canGetUserRoles != that.canGetUserRoles) return false;
-        return supportedAuthType == that.supportedAuthType;
+        return canSearch == that.canSearch &&
+                canAuthorize == that.canAuthorize &&
+                canGetUserRoles == that.canGetUserRoles &&
+                supportsAddUser == that.supportsAddUser &&
+                supportedAuthType == that.supportedAuthType;
     }
 
     @Override
     public int hashCode() {
-        int result = supportedAuthType != null ? supportedAuthType.hashCode() : 0;
-        result = 31 * result + (canSearch ? 1 : 0);
-        result = 31 * result + (canAuthorize ? 1 : 0);
-        result = 31 * result + (canGetUserRoles ? 1 : 0);
-        return result;
+        return Objects.hash(supportedAuthType, canSearch, canAuthorize, canGetUserRoles, supportsAddUser);
     }
 }
