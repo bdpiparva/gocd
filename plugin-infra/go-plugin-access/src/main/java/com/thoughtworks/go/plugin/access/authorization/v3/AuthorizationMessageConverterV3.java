@@ -21,7 +21,6 @@ import com.google.gson.reflect.TypeToken;
 import com.thoughtworks.go.config.PluginRoleConfig;
 import com.thoughtworks.go.config.SecurityAuthConfig;
 import com.thoughtworks.go.plugin.access.authorization.AuthorizationMessageConverter;
-import com.thoughtworks.go.plugin.access.authorization.v2.AuthorizationMessageConverterV2;
 import com.thoughtworks.go.plugin.access.common.handler.JSONResultMessageHandler;
 import com.thoughtworks.go.plugin.access.common.models.ImageDeserializer;
 import com.thoughtworks.go.plugin.access.common.models.PluginProfileMetadataKeys;
@@ -36,7 +35,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class AuthorizationMessageConverterV3 extends AuthorizationMessageConverterV2 {
+public class AuthorizationMessageConverterV3 implements AuthorizationMessageConverter {
     public static final String VERSION = "3.0";
     private static final Gson GSON = new Gson();
 
@@ -236,8 +235,12 @@ public class AuthorizationMessageConverterV3 extends AuthorizationMessageConvert
     }
 
     @Override
-    public String addUserRequestBody(Map<String, String> configuration) {
-        return GSON.toJson(configuration);
+    public String addUserRequestBody(String username, String password, SecurityAuthConfig authConfig) {
+        Map<String, Object> requestMap = new HashMap<>();
+        requestMap.put("username", username);
+        requestMap.put("password", password);
+        requestMap.put("auth_config", getAuthConfig(authConfig));
+        return GSON.toJson(requestMap);
     }
 
     @Override

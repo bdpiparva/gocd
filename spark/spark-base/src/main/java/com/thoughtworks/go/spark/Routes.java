@@ -388,6 +388,7 @@ public class Routes {
         public static final String BASE = "/api/admin/security/auth_configs";
         public static final String ID = "/:id";
         public static final String DOC = apiDocsUrl("#auth_configs");
+        public static final String SETUP_PASSWORD_FILE = "/setup_password_file";
         public static final String VERIFY_CONNECTION = "/verify_connection";
         public static final String INTERNAL_BASE = "/api/admin/internal/security/auth_configs";
 
@@ -603,5 +604,9 @@ public class Routes {
 
     public class ClusterProfiles {
         public static final String SPA_BASE = "/admin/cluster_profiles";
+    }
+
+    public class SetupSecurity {
+        public static final String SPA_BASE = "/setup_security";
     }
 }

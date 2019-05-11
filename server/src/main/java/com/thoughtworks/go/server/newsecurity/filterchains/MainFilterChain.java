@@ -43,20 +43,21 @@ public class MainFilterChain extends FilterChainProxy {
     public MainFilterChain(ModeAwareFilter modeAwareFilter,
                            CreateSessionFilterChain createSessionFilterChain,
                            RememberLastRequestUrlFilterChain rememberLastRequestUrlFilterChain,
+                           SetupSecurityFilterChain setupSecurityFilterChain,
                            AuthenticationFilterChain authenticationFilterChain,
                            ThreadLocalUserFilter threadLocalUserFilter,
                            UserEnabledCheckFilterChain userEnabledFilterChain,
                            AuthorizeFilterChain authorizeFilterChain,
                            DenyGoCDAccessForArtifactsFilterChain denyGoCDAccessForArtifactsFilterChain,
                            ArtifactSizeEnforcementFilterChain artifactSizeEnforcementFilterChain,
-                           FlashLoadingFilter flashLoadingFilter
-                           ) {
+                           FlashLoadingFilter flashLoadingFilter) {
 
         super(FilterChainBuilder.newInstance()
                 .addFilterChain("/**",
                         modeAwareFilter,
                         createSessionFilterChain,
                         rememberLastRequestUrlFilterChain,
+                        setupSecurityFilterChain,
                         authenticationFilterChain,
                         threadLocalUserFilter,
                         userEnabledFilterChain,

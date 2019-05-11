@@ -107,6 +107,7 @@ public class AuthorizeFilterChain extends FilterChainProxy {
 
                 // addons will be expected to do their own authentication/authorization
                 .addFilterChain("/add-on/**", allowAllAccessFilter)
+                .addFilterChain("/setup_security", allowAllAccessFilter)
 
                 .addAuthorityFilterChain("/**", genericAccessDeniedHandler, ROLE_USER)
                 .build());

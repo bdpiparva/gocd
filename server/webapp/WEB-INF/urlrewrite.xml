@@ -25,6 +25,11 @@
 
 <urlrewrite>
   <rule>
+    <name>Setup security UI</name>
+    <from>^/setup_security(/?)$</from>
+    <to last="true">/spark/setup_security</to>
+  </rule>
+  <rule>
     <name>secret_configs UI</name>
     <from>^/admin/secret_configs(/?)$</from>
     <to last="true">/spark/admin/secret_configs</to>
@@ -621,9 +626,9 @@
 
   <rule>
     <name>Security Auth Configs internal API</name>
-    <from>^/api/admin/internal/security/auth_configs/verify_connection$</from>
+    <from>^/api/admin/internal/security/auth_configs/(verify_connection|setup_password_file)(/?)$</from>
     <run class="com.thoughtworks.go.server.SparkOrRailsToggle" method="authConfigsApiUsing"/>
-    <to last="true">/%{attribute:sparkOrRails}/api/admin/internal/security/auth_configs/verify_connection</to>
+    <to last="true">/%{attribute:sparkOrRails}/api/admin/internal/security/auth_configs/$1</to>
   </rule>
 
   <rule>

@@ -317,6 +317,7 @@ export abstract class FormField<T, V = {}> extends MithrilViewComponent<BaseAttr
 }
 
 export type TextFieldAttrs = BaseAttrs<string> & RequiredFieldAttr & PlaceholderAttr;
+
 export class TextField extends FormField<string, RequiredFieldAttr & PlaceholderAttr> {
 
   renderInputField(vnode: m.Vnode<TextFieldAttrs>) {
@@ -386,9 +387,13 @@ export class TextAreaField extends FormField<string, TextAreaFieldAttrs> {
 
 }
 
-export class PasswordField extends FormField<EncryptedValue, RequiredFieldAttr & PlaceholderAttr> {
+interface PasswordFieldAttrs extends RequiredFieldAttr, PlaceholderAttr {
+  hideReset?: boolean | false;
+}
 
-  renderInputField(vnode: m.Vnode<BaseAttrs<EncryptedValue> & RequiredFieldAttr & PlaceholderAttr>) {
+export class PasswordField extends FormField<EncryptedValue, PasswordFieldAttrs> {
+
+  renderInputField(vnode: m.Vnode<BaseAttrs<EncryptedValue> & PasswordFieldAttrs>) {
     const input = <input type="password"
                          className={classnames(styles.formControl, styles.inline)}
                          {...this.defaultAttributes(vnode.attrs)}
@@ -397,7 +402,7 @@ export class PasswordField extends FormField<EncryptedValue, RequiredFieldAttr &
     return [input, PasswordField.resetOrOverride(vnode)];
   }
 
-  protected defaultAttributes(attrs: BaseAttrs<EncryptedValue> & RequiredFieldAttr & PlaceholderAttr): any {
+  protected defaultAttributes(attrs: BaseAttrs<EncryptedValue> & PasswordFieldAttrs): any {
     return _.assign(super.defaultAttributes(attrs), textInputFieldDefaultAttrs, {
       readonly: !attrs.property().isEditing()
     });
@@ -419,7 +424,11 @@ export class PasswordField extends FormField<EncryptedValue, RequiredFieldAttr &
 
   }
 
-  private static resetOrOverride(vnode: m.Vnode<BaseAttrs<EncryptedValue> & RequiredFieldAttr & PlaceholderAttr>) {
+  private static resetOrOverride(vnode: m.Vnode<BaseAttrs<EncryptedValue> & PasswordFieldAttrs>) {
+    if (vnode.attrs.hideReset) {
+      return null;
+    }
+
     if (vnode.attrs.property().isEditing()) {
       return <FormResetButton
         onclick={vnode.attrs.property().resetToOriginal.bind(vnode.attrs.property())}>Reset</FormResetButton>;

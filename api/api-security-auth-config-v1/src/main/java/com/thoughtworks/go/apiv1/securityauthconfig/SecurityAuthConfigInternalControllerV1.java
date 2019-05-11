@@ -23,20 +23,23 @@ import com.thoughtworks.go.api.base.OutputWriter;
 import com.thoughtworks.go.api.representers.JsonReader;
 import com.thoughtworks.go.api.spring.ApiAuthenticationHelper;
 import com.thoughtworks.go.api.util.GsonTransformer;
+import com.thoughtworks.go.apiv1.securityauthconfig.representers.CreateUserRepresenter;
 import com.thoughtworks.go.apiv1.securityauthconfig.representers.SecurityAuthConfigRepresenter;
-import com.thoughtworks.go.apiv1.securityauthconfig.representers.SecurityAuthConfigsRepresenter;
 import com.thoughtworks.go.apiv1.securityauthconfig.representers.VerifyConnectionResponseRepresenter;
 import com.thoughtworks.go.config.SecurityAuthConfig;
-import com.thoughtworks.go.config.SecurityAuthConfigs;
+import com.thoughtworks.go.config.builder.ConfigurationPropertyBuilder;
 import com.thoughtworks.go.config.exceptions.EntityType;
 import com.thoughtworks.go.config.exceptions.HttpException;
+import com.thoughtworks.go.domain.config.ConfigurationProperty;
+import com.thoughtworks.go.plugin.access.authorization.AuthorizationExtension;
 import com.thoughtworks.go.plugin.domain.common.VerifyConnectionResponse;
 import com.thoughtworks.go.server.service.EntityHashingService;
 import com.thoughtworks.go.server.service.SecurityAuthConfigService;
-import com.thoughtworks.go.server.service.result.HttpLocalizedOperationResult;
 import com.thoughtworks.go.spark.Routes;
 import com.thoughtworks.go.spark.spring.SparkSpringController;
-import org.apache.commons.lang3.StringUtils;
+import com.thoughtworks.go.util.SystemEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import spark.Request;
@@ -45,22 +48,29 @@ import spark.Response;
 import java.io.IOException;
 import java.util.function.Consumer;
 
-import static com.thoughtworks.go.api.util.HaltApiResponses.*;
 import static spark.Spark.*;
 
 @Component
 public class SecurityAuthConfigInternalControllerV1 extends ApiController implements SparkSpringController, CrudController<SecurityAuthConfig> {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(SecurityAuthConfigInternalControllerV1.class);
     private SecurityAuthConfigService securityAuthConfigService;
     private final ApiAuthenticationHelper apiAuthenticationHelper;
     private EntityHashingService entityHashingService;
+    private AuthorizationExtension authorizationExtension;
+    private SystemEnvironment systemEnvironment;
 
     @Autowired
-    public SecurityAuthConfigInternalControllerV1(SecurityAuthConfigService securityAuthConfigService, ApiAuthenticationHelper apiAuthenticationHelper, EntityHashingService entityHashingService) {
+    public SecurityAuthConfigInternalControllerV1(SecurityAuthConfigService securityAuthConfigService,
+                                                  ApiAuthenticationHelper apiAuthenticationHelper,
+                                                  EntityHashingService entityHashingService,
+                                                  AuthorizationExtension authorizationExtension,
+                                                  SystemEnvironment systemEnvironment) {
         super(ApiVersion.v1);
         this.securityAuthConfigService = securityAuthConfigService;
         this.apiAuthenticationHelper = apiAuthenticationHelper;
         this.entityHashingService = entityHashingService;
+        this.authorizationExtension = authorizationExtension;
+        this.systemEnvironment = systemEnvironment;
     }
 
     @Override
@@ -74,10 +84,33 @@ public class SecurityAuthConfigInternalControllerV1 extends ApiController implem
             before(Routes.SecurityAuthConfigAPI.VERIFY_CONNECTION, mimeType, this::setContentType);
             before(Routes.SecurityAuthConfigAPI.VERIFY_CONNECTION, mimeType, this.apiAuthenticationHelper::checkAdminUserAnd403);
 
+            before(Routes.SecurityAuthConfigAPI.SETUP_PASSWORD_FILE, mimeType, this::setContentType);
+
             post(Routes.SecurityAuthConfigAPI.VERIFY_CONNECTION, mimeType, this::verifyConnection);
+            post(Routes.SecurityAuthConfigAPI.SETUP_PASSWORD_FILE, mimeType, this::setupNewPasswordFile);
 
             exception(HttpException.class, this::httpException);
         });
+    }
+
+    public String setupNewPasswordFile(Request request, Response response) throws IOException {
+        CreateUserRequest createUserRequest = CreateUserRepresenter.fromJSON(GsonTransformer.getInstance().jsonReaderFrom(request.body()));
+        String pluginId = "cd.go.authentication.passwordfile";
+
+        ConfigurationPropertyBuilder builder = new ConfigurationPropertyBuilder();
+        String passwordFilePath = systemEnvironment.getConfigDir() + "/password.properties";
+
+        ConfigurationProperty configurationProperty = builder.create("PasswordFilePath", passwordFilePath, null, false);
+        SecurityAuthConfig securityAuthConfig = new SecurityAuthConfig("password-file", pluginId, configurationProperty);
+
+        try {
+            authorizationExtension.addUser(pluginId, createUserRequest.getUsername(), createUserRequest.getPassword(), securityAuthConfig);
+            return writerForTopLevelObject(request, response, writer -> writer.add("message", "User added successfully"));
+        } catch (Exception e) {
+            LOGGER.error("Failed to setup up security: ", e);
+            response.status(422);
+            return writerForTopLevelObject(request, response, writer -> writer.add("message", "Failed to save user"));
+        }
     }
 
     public String verifyConnection(Request request, Response response) throws IOException {

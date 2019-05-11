@@ -317,16 +317,11 @@ public class AuthorizationExtension extends AbstractExtension {
         });
     }
 
-    String addUser(String pluginId, Map<String, String> configuration) {
-        return pluginRequestHelper.submitRequest(pluginId, REQUEST_ADD_USER, new DefaultPluginInteractionCallback<String>() {
+    public Void addUser(String pluginId, String username, String password, SecurityAuthConfig authConfig) {
+        return pluginRequestHelper.submitRequest(pluginId, REQUEST_ADD_USER, new DefaultPluginInteractionCallback<Void>() {
             @Override
             public String requestBody(String resolvedExtensionVersion) {
-                return getMessageConverter(resolvedExtensionVersion).addUserRequestBody(configuration);
-            }
-
-            @Override
-            public String onSuccess(String responseBody, Map<String, String> responseHeaders, String resolvedExtensionVersion) {
-                return getMessageConverter(resolvedExtensionVersion).getPluginConfigurationViewFromResponseBody(responseBody);
+                return getMessageConverter(resolvedExtensionVersion).addUserRequestBody(username, password, authConfig);
             }
         });
     }

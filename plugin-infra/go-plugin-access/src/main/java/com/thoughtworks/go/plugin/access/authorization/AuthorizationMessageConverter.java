@@ -76,5 +76,5 @@ public interface AuthorizationMessageConverter {
 
     List<String> getUserRolesFromResponseBody(String responseBody);
 
-    String addUserRequestBody(Map<String, String> configuration);
+    String addUserRequestBody(String username, String password, SecurityAuthConfig authConfig);
 }
