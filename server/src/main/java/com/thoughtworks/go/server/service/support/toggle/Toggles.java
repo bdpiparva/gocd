@@ -19,6 +19,7 @@ public class Toggles {
     public static String PIPELINE_COMMENT_FEATURE_TOGGLE_KEY = "pipeline_comment_feature_toggle_key";
     public static String BROWSER_CONSOLE_LOG_WS = "browser_console_log_ws_key";
     public static String USERS_PAGE_USING_RAILS = "users_page_using_rails";
+    public static String AUTH_CONFIG_API_USING_RAILS = "auth_config_api_using_rails";
     public static String BACKUP_PAGE_USING_RAILS = "backup_page_using_rails";
     public static String NEW_ADD_PIPELINE_FLOW = "new_add_pipeline_flow";
     public static String SHOW_SECRET_CONFIG_SPA = "show_secret_config_spa";

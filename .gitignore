@@ -387,3 +387,7 @@ api/api-dependency-material-autocomplete-v1/out/
 api/api-dependency-material-autocomplete-v1/target/
 api/api-dependency-material-autocomplete-v1/logs/
 
+api/api-security-auth-config-v1/out/
+api/api-security-auth-config-v1/target/
+api/api-security-auth-config-v1/logs/
+api/api-security-auth-config-v1/config/

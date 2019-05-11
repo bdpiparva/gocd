@@ -30,6 +30,10 @@ public class SparkOrRailsToggle {
         basedOnToggle(Toggles.BACKUP_PAGE_USING_RAILS, request);
     }
 
+    public void authConfigsApiUsing(HttpServletRequest request, HttpServletResponse response) {
+        basedOnToggle(Toggles.AUTH_CONFIG_API_USING_RAILS, request);
+    }
+
     private void basedOnToggle(String toggle, HttpServletRequest request) {
         if (Toggles.isToggleOn(toggle)) {
             request.setAttribute("sparkOrRails", "rails");
