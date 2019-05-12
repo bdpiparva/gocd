@@ -234,7 +234,7 @@ public class AuthorizationMessageConverterV1 implements AuthorizationMessageConv
     }
 
     @Override
-    public String addUserRequestBody(String username, String password, SecurityAuthConfig authConfig) {
+    public String addUserRequestBody(Map<String, String> configuration, SecurityAuthConfig authConfig) {
         throw new UnsupportedOperationException("Authorization Extension v1 does not implement add-user call.");
     }
 

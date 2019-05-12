@@ -28,7 +28,10 @@ public class SetupSecurityFilterChain extends FilterChainProxy {
     @Autowired
     public SetupSecurityFilterChain(SetupSecurityFilter setupSecurityFilter) {
         super(FilterChainBuilder.newInstance()
-                .addFilterChain("/setup_security", new AllowAllAccessFilter())
+                .addFilterChain("/assets/webpack/**", new AllowAllAccessFilter())
+                .addFilterChain("/assets/cruise.ico", new AllowAllAccessFilter())
+                .addFilterChain("/api/admin/internal/security/auth_configs/*", new AllowAllAccessFilter())
+                .addFilterChain("/api/admin/security/auth_configs", new AllowAllAccessFilter())
                 .addFilterChain("/**", setupSecurityFilter)
                 .build()
         );

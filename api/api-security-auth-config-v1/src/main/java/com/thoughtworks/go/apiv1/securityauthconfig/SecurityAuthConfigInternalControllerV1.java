@@ -23,6 +23,7 @@ import com.thoughtworks.go.api.base.OutputWriter;
 import com.thoughtworks.go.api.representers.JsonReader;
 import com.thoughtworks.go.api.spring.ApiAuthenticationHelper;
 import com.thoughtworks.go.api.util.GsonTransformer;
+import com.thoughtworks.go.apiv1.securityauthconfig.representers.AuthorizationExtensionRepresenter;
 import com.thoughtworks.go.apiv1.securityauthconfig.representers.CreateUserRepresenter;
 import com.thoughtworks.go.apiv1.securityauthconfig.representers.SecurityAuthConfigRepresenter;
 import com.thoughtworks.go.apiv1.securityauthconfig.representers.VerifyConnectionResponseRepresenter;
@@ -32,9 +33,14 @@ import com.thoughtworks.go.config.exceptions.EntityType;
 import com.thoughtworks.go.config.exceptions.HttpException;
 import com.thoughtworks.go.domain.config.ConfigurationProperty;
 import com.thoughtworks.go.plugin.access.authorization.AuthorizationExtension;
+import com.thoughtworks.go.plugin.domain.common.CombinedPluginInfo;
+import com.thoughtworks.go.plugin.domain.common.PluginConstants;
+import com.thoughtworks.go.plugin.domain.common.PluginInfo;
 import com.thoughtworks.go.plugin.domain.common.VerifyConnectionResponse;
 import com.thoughtworks.go.server.service.EntityHashingService;
 import com.thoughtworks.go.server.service.SecurityAuthConfigService;
+import com.thoughtworks.go.server.service.plugins.builder.DefaultPluginInfoFinder;
+import com.thoughtworks.go.server.service.result.HttpLocalizedOperationResult;
 import com.thoughtworks.go.spark.Routes;
 import com.thoughtworks.go.spark.spring.SparkSpringController;
 import com.thoughtworks.go.util.SystemEnvironment;
@@ -46,6 +52,7 @@ import spark.Request;
 import spark.Response;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import static spark.Spark.*;
@@ -58,19 +65,22 @@ public class SecurityAuthConfigInternalControllerV1 extends ApiController implem
     private EntityHashingService entityHashingService;
     private AuthorizationExtension authorizationExtension;
     private SystemEnvironment systemEnvironment;
+    private DefaultPluginInfoFinder pluginInfoFinder;
 
     @Autowired
     public SecurityAuthConfigInternalControllerV1(SecurityAuthConfigService securityAuthConfigService,
                                                   ApiAuthenticationHelper apiAuthenticationHelper,
                                                   EntityHashingService entityHashingService,
                                                   AuthorizationExtension authorizationExtension,
-                                                  SystemEnvironment systemEnvironment) {
+                                                  SystemEnvironment systemEnvironment,
+                                                  DefaultPluginInfoFinder pluginInfoFinder) {
         super(ApiVersion.v1);
         this.securityAuthConfigService = securityAuthConfigService;
         this.apiAuthenticationHelper = apiAuthenticationHelper;
         this.entityHashingService = entityHashingService;
         this.authorizationExtension = authorizationExtension;
         this.systemEnvironment = systemEnvironment;
+        this.pluginInfoFinder = pluginInfoFinder;
     }
 
     @Override
@@ -82,15 +92,21 @@ public class SecurityAuthConfigInternalControllerV1 extends ApiController implem
     public void setupRoutes() {
         path(controllerBasePath(), () -> {
             before(Routes.SecurityAuthConfigAPI.VERIFY_CONNECTION, mimeType, this::setContentType);
-            before(Routes.SecurityAuthConfigAPI.VERIFY_CONNECTION, mimeType, this.apiAuthenticationHelper::checkAdminUserAnd403);
-
             before(Routes.SecurityAuthConfigAPI.SETUP_PASSWORD_FILE, mimeType, this::setContentType);
+            before(Routes.SecurityAuthConfigAPI.PASSWORD_FILE_PLUGIN_INFO, mimeType, this::setContentType);
 
+            get(Routes.SecurityAuthConfigAPI.PASSWORD_FILE_PLUGIN_INFO, mimeType, this::passwordFilePluginInfo);
             post(Routes.SecurityAuthConfigAPI.VERIFY_CONNECTION, mimeType, this::verifyConnection);
             post(Routes.SecurityAuthConfigAPI.SETUP_PASSWORD_FILE, mimeType, this::setupNewPasswordFile);
 
             exception(HttpException.class, this::httpException);
         });
+    }
+
+    public String passwordFilePluginInfo(Request request, Response response) throws IOException {
+        CombinedPluginInfo pluginInfos = pluginInfoFinder.pluginInfoFor("cd.go.authentication.passwordfile");
+        PluginInfo pluginInfo = pluginInfos.extensionFor(PluginConstants.AUTHORIZATION_EXTENSION);
+        return writerForTopLevelObject(request, response, writer -> new AuthorizationExtensionRepresenter().toJSON(writer, pluginInfo));
     }
 
     public String setupNewPasswordFile(Request request, Response response) throws IOException {
@@ -101,10 +117,11 @@ public class SecurityAuthConfigInternalControllerV1 extends ApiController implem
         String passwordFilePath = systemEnvironment.getConfigDir() + "/password.properties";
 
         ConfigurationProperty configurationProperty = builder.create("PasswordFilePath", passwordFilePath, null, false);
-        SecurityAuthConfig securityAuthConfig = new SecurityAuthConfig("password-file", pluginId, configurationProperty);
+        SecurityAuthConfig securityAuthConfig = new SecurityAuthConfig(UUID.randomUUID().toString(), pluginId, configurationProperty);
 
         try {
-            authorizationExtension.addUser(pluginId, createUserRequest.getUsername(), createUserRequest.getPassword(), securityAuthConfig);
+            authorizationExtension.addUser(pluginId, createUserRequest.getConfigurationProperties().getConfigurationAsMap(true), securityAuthConfig);
+            securityAuthConfigService.create(currentUsername(), securityAuthConfig, new HttpLocalizedOperationResult());
             return writerForTopLevelObject(request, response, writer -> writer.add("message", "User added successfully"));
         } catch (Exception e) {
             LOGGER.error("Failed to setup up security: ", e);

@@ -194,21 +194,25 @@ export class ElasticAgentSettings extends Extension {
 export class AuthorizationSettings extends Extension {
   readonly authConfigSettings: PluginSettings;
   readonly roleSettings: PluginSettings;
+  readonly userAddSettings: PluginSettings;
   readonly capabilities: AuthCapabilities;
 
   constructor(authConfigSettings: PluginSettings,
               roleSettings: PluginSettings,
+              userAddSettings: PluginSettings,
               capabilities: AuthCapabilities,
               pluginSettings?: PluginSettings) {
     super(ExtensionType.AUTHORIZATION, pluginSettings);
     this.authConfigSettings = authConfigSettings;
     this.roleSettings       = roleSettings;
     this.capabilities       = capabilities;
+    this.userAddSettings    = userAddSettings;
   }
 
   static fromJSON(data: any) {
     return new AuthorizationSettings(PluginSettings.fromJSON(data.auth_config_settings),
                                      PluginSettings.fromJSON(data.role_settings),
+                                     PluginSettings.fromJSON(data.user_add_settings),
                                      AuthCapabilities.fromJSON(data.capabilities),
                                      PluginSettings.tryParsing(data));
   }

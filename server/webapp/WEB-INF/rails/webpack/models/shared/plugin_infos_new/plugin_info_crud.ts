@@ -30,11 +30,13 @@ export class PluginInfoCRUD {
 
   static all(options: PluginInfoQuery): Promise<ApiResult<Array<PluginInfo<Extension>>>> {
     return ApiRequestBuilder.GET(Routes.apiv4AdminPluginInfoIndexPath(options), this.API_VERSION_HEADER)
-      .then((result: ApiResult<string>) => {
-        return result.map((str) => {
-          const data = JSON.parse(str);
-          return data._embedded.plugin_info.map((pluginInfo: any) => PluginInfo.fromJSON(pluginInfo, pluginInfo._links));
-        });
-      });
+                            .then((result: ApiResult<string>) => {
+                              return result.map((str) => {
+                                const data = JSON.parse(str);
+                                return data._embedded.plugin_info.map((pluginInfo: any) => PluginInfo.fromJSON(
+                                  pluginInfo,
+                                  pluginInfo._links));
+                              });
+                            });
   }
 }

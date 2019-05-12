@@ -388,9 +388,12 @@ public class Routes {
         public static final String BASE = "/api/admin/security/auth_configs";
         public static final String ID = "/:id";
         public static final String DOC = apiDocsUrl("#auth_configs");
-        public static final String SETUP_PASSWORD_FILE = "/setup_password_file";
-        public static final String VERIFY_CONNECTION = "/verify_connection";
+
+        // Internal apis
         public static final String INTERNAL_BASE = "/api/admin/internal/security/auth_configs";
+        public static final String VERIFY_CONNECTION = "/verify_connection";
+        public static final String SETUP_PASSWORD_FILE = "/setup_password_file";
+        public static final String PASSWORD_FILE_PLUGIN_INFO = "/password_file_plugin_info";
 
         public static String find() {
             return BASE + ID;

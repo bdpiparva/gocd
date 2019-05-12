@@ -21,6 +21,8 @@ import * as stream from "mithril/stream";
 import {AuthConfig} from "models/auth_configs/auth_configs";
 import {AuthConfigsCRUD} from "models/auth_configs/auth_configs_crud";
 import {SetupSecurity} from "models/setup_security/setup_security";
+import {SetupSecurityCrud} from "models/setup_security/setup_security_crud";
+import {AuthorizationSettings} from "models/shared/plugin_infos_new/extensions";
 import {Page, PageState} from "views/pages/page";
 import {AddOperation} from "views/pages/page_operations";
 import {SetupSecurityWidget} from "views/pages/setup_security/setup_security_widget";
@@ -28,15 +30,22 @@ import {SetupSecurityWidget} from "views/pages/setup_security/setup_security_wid
 interface State extends AddOperation<SetupSecurity> {
   setupSecurity: Stream<SetupSecurity>;
   loadExistingFile: (e: MouseEvent) => void;
+  passwordFileSettings: Stream<AuthorizationSettings>;
 }
 
 export class SetupSecurityPage extends Page<null, State> {
   oninit(vnode: m.Vnode<null, State>) {
     super.oninit(vnode);
+    vnode.state.passwordFileSettings = stream();
 
     vnode.state.onAdd = (e: MouseEvent) => {
       e.preventDefault();
-      vnode.state.setupSecurity().save();
+      vnode.state.setupSecurity()
+           .save()
+           .then((result: ApiResult<string>) => result.do(() => {
+             window.location.href = "/";
+           }, (errorResponse: ErrorResponse) => {
+           }));
     };
 
     vnode.state.loadExistingFile = (e: MouseEvent) => {
@@ -56,9 +65,14 @@ export class SetupSecurityPage extends Page<null, State> {
   }
 
   fetchData(vnode: m.Vnode<null, State>): Promise<any> {
-    this.pageState            = PageState.OK;
     vnode.state.setupSecurity = stream(new SetupSecurity());
-    return Promise.resolve();
+    return SetupSecurityCrud.passwordFilePluginInfo()
+                            .then((result) => {
+                              result.do((successResponse) => {
+                                this.pageState = PageState.OK;
+                                vnode.state.passwordFileSettings(successResponse.body.object);
+                              }, () => this.setErrorState());
+                            });
   }
 
   protected headerPanel(vnode: m.Vnode<null, State>): any {

@@ -16,13 +16,15 @@
 
 package com.thoughtworks.go.apiv1.securityauthconfig.representers;
 
-import com.thoughtworks.go.api.representers.ConfigurationPropertyRepresenter;
-import com.thoughtworks.go.api.representers.JsonReader;
-import com.thoughtworks.go.apiv1.securityauthconfig.CreateUserRequest;
+import com.thoughtworks.go.api.base.OutputWriter;
+import com.thoughtworks.go.plugin.domain.common.PluginInfo;
 
-public class CreateUserRepresenter {
+public class ExtensionRepresenter {
+    public void toJSON(OutputWriter extensionWriter, PluginInfo extension) {
+        extensionWriter.add("type", extension.getExtensionName());
 
-    public static CreateUserRequest fromJSON(JsonReader jsonReader) {
-        return new CreateUserRequest(ConfigurationPropertyRepresenter.fromJSONArray(jsonReader, "properties"));
+        if (extension.getPluginSettings() != null) {
+            extensionWriter.addChild("plugin_settings", pluginSettingsWriter -> PluggableInstanceSettingsRepresenter.toJSON(pluginSettingsWriter, extension.getPluginSettings()));
+        }
     }
 }

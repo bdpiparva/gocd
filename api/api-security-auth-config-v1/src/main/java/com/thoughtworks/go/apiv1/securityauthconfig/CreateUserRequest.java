@@ -16,33 +16,19 @@
 
 package com.thoughtworks.go.apiv1.securityauthconfig;
 
-import com.google.gson.annotations.Expose;
+import com.thoughtworks.go.domain.config.Configuration;
+import com.thoughtworks.go.domain.config.ConfigurationProperty;
+
+import java.util.List;
 
 public class CreateUserRequest {
-    @Expose
-    private String username;
+    private final Configuration configurationProperties;
 
-    @Expose
-    private String password;
-
-    public CreateUserRequest(String username, String password) {
-        this.username = username;
-        this.password = password;
+    public CreateUserRequest(List<ConfigurationProperty> properties) {
+        configurationProperties = new Configuration(properties);
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    public Configuration getConfigurationProperties() {
+        return configurationProperties;
     }
 }

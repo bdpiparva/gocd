@@ -20,6 +20,7 @@ import com.thoughtworks.go.server.service.SecurityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -33,6 +34,7 @@ import java.io.IOException;
 public class SetupSecurityFilter extends OncePerRequestFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(SetupSecurityFilter.class);
     private SecurityService securityService;
+    private AntPathRequestMatcher requestMatcher = new AntPathRequestMatcher("/setup_security");
 
     @Autowired
     public SetupSecurityFilter(SecurityService securityService) {
@@ -41,9 +43,14 @@ public class SetupSecurityFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-        if (!securityService.isSecurityEnabled()) {
+        if (securityService.isSecurityEnabled() && requestMatcher.matches(request)) {
+            LOGGER.info("Security is enabled on this server. Redirecting to home page.");
+            response.sendRedirect("/go");
+        }
+        
+        if (!securityService.isSecurityEnabled() && !requestMatcher.matches(request)) {
             LOGGER.info("Security is not setup on this GoCD server. Redirecting to security setup page.");
-            response.sendRedirect("/setup_security");
+            response.sendRedirect("/go/setup_security");
             return;
         }
 

@@ -626,7 +626,9 @@
 
   <rule>
     <name>Security Auth Configs internal API</name>
-    <from>^/api/admin/internal/security/auth_configs/(verify_connection|setup_password_file)(/?)$</from>
+    <from>
+      ^/api/admin/internal/security/auth_configs/(verify_connection|setup_password_file|password_file_plugin_info)(/?)$
+    </from>
     <run class="com.thoughtworks.go.server.SparkOrRailsToggle" method="authConfigsApiUsing"/>
     <to last="true">/%{attribute:sparkOrRails}/api/admin/internal/security/auth_configs/$1</to>
   </rule>

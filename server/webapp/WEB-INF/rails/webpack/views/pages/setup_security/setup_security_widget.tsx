@@ -18,55 +18,52 @@ import {bind} from "classnames/bind";
 import {MithrilViewComponent} from "jsx/mithril-component";
 import * as m from "mithril";
 import {Stream} from "mithril/stream";
+import * as stream from "mithril/stream";
 import {SetupSecurity} from "models/setup_security/setup_security";
+import {AuthorizationSettings} from "models/shared/plugin_infos_new/extensions";
 import * as Buttons from "views/components/buttons/index";
 import {Form} from "views/components/forms/form";
-import {PasswordField, TextField} from "views/components/forms/input_fields";
+import {TextField} from "views/components/forms/input_fields";
+import * as foundationStyles from "views/pages/new_plugins/foundation_hax.scss";
 import {AddOperation} from "views/pages/page_operations";
 import * as styles from "./index.scss";
+
+const AngularPluginNew = require("views/shared/angular_plugin_new");
 
 const classnames = bind(styles);
 
 interface Attrs extends AddOperation<SetupSecurity> {
   setupSecurity: Stream<SetupSecurity>;
+  passwordFileSettings: Stream<AuthorizationSettings>;
   loadExistingFile: (e: MouseEvent) => void;
 }
 
 export class SetupSecurityWidget extends MithrilViewComponent<Attrs> {
   view(vnode: m.Vnode<Attrs>) {
+    if (!vnode.attrs.passwordFileSettings()) {
+      return "Loading";
+    }
+
     return (<div className={styles.setup_security}>
       <h1>Setup security</h1>
 
       <div className={styles.row}>
         <div className={styles.col2}>
-          <Form compactForm={true}>
-            <TextField required={true}
-                       helpText="Enter your username here"
-                       label="Username"
-                       placeholder="username"
-                       errorText={vnode.attrs.setupSecurity().errors().errorsForDisplay("username")}
-                       property={vnode.attrs.setupSecurity().getUsername()}/>
 
-            <PasswordField required={true}
-                           label="Password"
-                           errorText={vnode.attrs.setupSecurity().errors().errorsForDisplay("password")}
-                           hideReset={true}
-                           property={vnode.attrs.setupSecurity().getPassword()}/>
+          <div className={foundationStyles.foundationFormHax}>
+            <div className="row collapse">
+              <AngularPluginNew
+                pluginInfoSettings={stream(vnode.attrs.passwordFileSettings().userAddSettings)}
+                configuration={vnode.attrs.setupSecurity().getProperties()}/>
+            </div>
+          </div>
 
-            <PasswordField required={true}
-                           label="Confirm password"
-                           hideReset={true}
-                           errorText={vnode.attrs.setupSecurity().errors().errorsForDisplay("confirm_password")}
-                           property={vnode.attrs.setupSecurity().getConfirmPassword()}/>
-
-            <Buttons.Primary onclick={vnode.attrs.onAdd.bind(vnode)}>Save</Buttons.Primary>
-          </Form>
+          <Buttons.Primary onclick={vnode.attrs.onAdd.bind(vnode)}>Create a new user</Buttons.Primary>
         </div>
         <div className={classnames(styles.col2, styles.help)}>
           <h3 className={styles.helpHeading}>Setup from scratch</h3>
           <p>
-            User <strong className={styles.wrapWord}>{vnode.attrs.setupSecurity().getUsernameAsString()}</strong> will
-            be created and stored in <strong>password.properties</strong> at <strong>/var/lib</strong>.
+            A user will be created and stored in <strong>password.properties</strong> at <strong>/var/lib</strong>.
           </p>
           Additional help can go here
         </div>

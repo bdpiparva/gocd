@@ -235,10 +235,9 @@ public class AuthorizationMessageConverterV3 implements AuthorizationMessageConv
     }
 
     @Override
-    public String addUserRequestBody(String username, String password, SecurityAuthConfig authConfig) {
+    public String addUserRequestBody(Map<String, String> configurations, SecurityAuthConfig authConfig) {
         Map<String, Object> requestMap = new HashMap<>();
-        requestMap.put("username", username);
-        requestMap.put("password", password);
+        requestMap.put("configurations", configurations);
         requestMap.put("auth_config", getAuthConfig(authConfig));
         return GSON.toJson(requestMap);
     }

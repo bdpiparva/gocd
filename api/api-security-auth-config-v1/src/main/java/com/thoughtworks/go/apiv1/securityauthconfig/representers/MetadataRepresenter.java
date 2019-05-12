@@ -16,13 +16,12 @@
 
 package com.thoughtworks.go.apiv1.securityauthconfig.representers;
 
-import com.thoughtworks.go.api.representers.ConfigurationPropertyRepresenter;
-import com.thoughtworks.go.api.representers.JsonReader;
-import com.thoughtworks.go.apiv1.securityauthconfig.CreateUserRequest;
+import com.thoughtworks.go.api.base.OutputWriter;
+import com.thoughtworks.go.plugin.domain.common.Metadata;
 
-public class CreateUserRepresenter {
-
-    public static CreateUserRequest fromJSON(JsonReader jsonReader) {
-        return new CreateUserRequest(ConfigurationPropertyRepresenter.fromJSONArray(jsonReader, "properties"));
+public class MetadataRepresenter {
+    public void toJSON(OutputWriter metadataWriter, Metadata metadata) {
+        metadataWriter.add("secure", metadata.isSecure())
+                .add("required", metadata.isRequired());
     }
 }

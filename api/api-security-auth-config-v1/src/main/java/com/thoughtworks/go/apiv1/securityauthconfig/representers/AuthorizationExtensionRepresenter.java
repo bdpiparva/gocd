@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package com.thoughtworks.go.apiv6.plugininfos.representers.extensions;
+package com.thoughtworks.go.apiv1.securityauthconfig.representers;
 
 import com.thoughtworks.go.api.base.OutputWriter;
-import com.thoughtworks.go.apiv6.plugininfos.representers.PluggableInstanceSettingsRepresenter;
 import com.thoughtworks.go.plugin.domain.authorization.AuthorizationPluginInfo;
 import com.thoughtworks.go.plugin.domain.common.PluggableInstanceSettings;
 import com.thoughtworks.go.plugin.domain.common.PluginInfo;
