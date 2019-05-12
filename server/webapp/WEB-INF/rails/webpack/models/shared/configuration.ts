@@ -15,6 +15,7 @@
  */
 
 import * as _ from "lodash";
+import {ValidatableMixin} from "models/mixins/new_validatable_mixin";
 import {ConfigValue, EncryptedValue, PlainTextValue} from "models/shared/config_value";
 
 export interface PropertyJSON {
@@ -24,10 +25,11 @@ export interface PropertyJSON {
   errors?: { [key: string]: string[] };
 }
 
-export class Configurations {
+export class Configurations extends ValidatableMixin {
   private readonly configurations: Configuration[];
 
   constructor(configurations: Configuration[]) {
+    super();
     this.configurations = configurations;
   }
 

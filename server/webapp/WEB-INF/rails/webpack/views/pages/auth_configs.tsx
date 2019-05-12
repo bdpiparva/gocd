@@ -20,12 +20,14 @@ import {AuthConfig, AuthConfigs} from "models/auth_configs/auth_configs";
 import {AuthConfigsCRUD} from "models/auth_configs/auth_configs_crud";
 import {Configurations} from "models/shared/configuration";
 import {ExtensionType} from "models/shared/plugin_infos_new/extension_type";
+import {PluginInfo} from "models/shared/plugin_infos_new/plugin_info";
 import {PluginInfoCRUD} from "models/shared/plugin_infos_new/plugin_info_crud";
 import * as Buttons from "views/components/buttons";
 import {FlashMessage, MessageType} from "views/components/flash_message";
 import {HeaderPanel} from "views/components/header_panel";
 import {AuthConfigsWidget} from "views/pages/auth_configs/auth_configs_widget";
 import {
+  AddUserModal,
   CloneAuthConfigModal, CreateAuthConfigModal, DeleteAuthConfigModal,
   EditAuthConfigModal
 } from "views/pages/auth_configs/modals";
@@ -40,6 +42,7 @@ import {
 
 interface State extends AddOperation<AuthConfig>, RequiresPluginInfos, EditOperation<AuthConfig>, CloneOperation<AuthConfig>, DeleteOperation<AuthConfig>, SaveOperation {
   authConfigs: AuthConfigs;
+  onAddUser: (authConfig: AuthConfig, e: MouseEvent) => void;
 }
 
 export class AuthConfigsPage extends Page<null, State> {
@@ -84,6 +87,13 @@ export class AuthConfigsPage extends Page<null, State> {
         this.flashMessage.setMessage(type, msg);
       }).render();
     };
+
+    vnode.state.onAddUser = (authConfig: AuthConfig, e: Event) => {
+      e.stopPropagation();
+      this.flashMessage.clear();
+
+      new AddUserModal(authConfig, vnode.state.pluginInfos(), vnode.state.onSuccessfulSave).render();
+    };
   }
 
   componentToDisplay(vnode: m.Vnode<null, State>): m.Children {
@@ -93,7 +103,9 @@ export class AuthConfigsPage extends Page<null, State> {
                          pluginInfos={vnode.state.pluginInfos}
                          onEdit={vnode.state.onEdit.bind(vnode.state)}
                          onClone={vnode.state.onClone.bind(vnode.state)}
-                         onDelete={vnode.state.onDelete.bind(vnode.state)}/>
+                         onDelete={vnode.state.onDelete.bind(vnode.state)}
+                         onAddUser={vnode.state.onAddUser.bind(vnode.state)}
+      />
     </div>;
   }
 

@@ -47,7 +47,7 @@ public class SetupSecurityFilter extends OncePerRequestFilter {
             LOGGER.info("Security is enabled on this server. Redirecting to home page.");
             response.sendRedirect("/go");
         }
-        
+
         if (!securityService.isSecurityEnabled() && !requestMatcher.matches(request)) {
             LOGGER.info("Security is not setup on this GoCD server. Redirecting to security setup page.");
             response.sendRedirect("/go/setup_security");

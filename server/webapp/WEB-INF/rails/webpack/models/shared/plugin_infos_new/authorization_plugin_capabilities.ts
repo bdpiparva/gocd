@@ -18,14 +18,16 @@ export class AuthCapabilities {
   readonly canSearch: boolean;
   readonly canAuthorize: boolean;
   readonly supportedAuthType: string;
+  readonly supportsAddUser: boolean;
 
-  constructor(canSearch: boolean, canAuthorize: boolean, supportedAuthType: string) {
+  constructor(canSearch: boolean, canAuthorize: boolean, supportedAuthType: string, supportsAddUser: boolean) {
     this.canSearch         = canSearch;
     this.canAuthorize      = canAuthorize;
     this.supportedAuthType = supportedAuthType;
+    this.supportsAddUser   = supportsAddUser;
   }
 
   static fromJSON(data: any) {
-    return new AuthCapabilities(data.can_search, data.can_authorize, data.supported_auth_type);
+    return new AuthCapabilities(data.can_search, data.can_authorize, data.supported_auth_type, data.supports_add_user);
   }
 }

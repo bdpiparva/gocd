@@ -20,7 +20,9 @@ import {Stream} from "mithril/stream";
 import * as stream from "mithril/stream";
 import {AuthConfig, AuthConfigJSON} from "models/auth_configs/auth_configs";
 import {AuthConfigsCRUD} from "models/auth_configs/auth_configs_crud";
-import {Configurations} from "models/shared/configuration";
+import {Configurations, PropertyJSON} from "models/shared/configuration";
+import {ExtensionType} from "models/shared/plugin_infos_new/extension_type";
+import {AuthorizationSettings} from "models/shared/plugin_infos_new/extensions";
 import {PluginInfo} from "models/shared/plugin_infos_new/plugin_info";
 import {ButtonGroup} from "views/components/buttons";
 import * as Buttons from "views/components/buttons";
@@ -29,6 +31,8 @@ import {Size} from "views/components/modal";
 import {EntityModal} from "views/components/modal/entity_modal";
 import {AuthConfigModalBody} from "views/pages/auth_configs/auth_config_modal_body";
 import {Message} from "views/pages/maintenance_mode";
+
+const AngularPluginNew = require("views/shared/angular_plugin_new");
 
 abstract class AuthConfigModal extends EntityModal<AuthConfig> {
   protected readonly originalEntityId: string;
@@ -213,5 +217,52 @@ export class DeleteAuthConfigModal extends AuthConfigModal {
 
   protected successMessage(): m.Children {
     return <span>The authorization configuration <em>{this.originalEntityId}</em> was deleted successfully!</span>;
+  }
+}
+
+export class AddUserModal extends EntityModal<Configurations> {
+  private authConfig: AuthConfig;
+
+  constructor(authConfig: AuthConfig,
+              pluginInfos: Array<PluginInfo<any>>,
+              onSuccessfulSave: (msg: m.Children) => any) {
+    super(new Configurations([]), pluginInfos, onSuccessfulSave, Size.medium);
+    this.authConfig = authConfig;
+    this.isStale(false);
+  }
+
+  title(): string {
+    return "Add user";
+  }
+
+  operationPromise(): Promise<any> {
+    return AuthConfigsCRUD.addUser(this.authConfig, this.entity());
+  }
+
+  successMessage(): m.Children {
+    return <span>The user was added successfully!</span>;
+  }
+
+  protected modalBody(): m.Vnode<any, any> | string | number | boolean | null | undefined | m.ChildArray {
+    const pluginInfo = this.pluginInfos.find((info) => info.id === this.authConfig.pluginId()) as PluginInfo<AuthorizationSettings>;
+    const extension  = pluginInfo.extensionOfType(ExtensionType.AUTHORIZATION) as AuthorizationSettings;
+    return (<div class="row collapse">
+      <AngularPluginNew
+        pluginInfoSettings={stream(extension.userAddSettings)}
+        configuration={this.entity()}/>
+    </div>);
+  }
+
+  protected onPluginChange(entity: Stream<Configurations>, pluginInfo: PluginInfo<any>): void {
+    //do nothing
+  }
+
+  protected parseJsonToEntity(json: object): Configurations {
+    return Configurations.fromJSON(json as PropertyJSON[]);
+  }
+
+  protected performFetch(entity: Configurations): Promise<any> {
+    // do nothing
+    return Promise.resolve();
   }
 }

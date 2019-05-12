@@ -194,6 +194,10 @@ export default class {
     }
   }
 
+  static authConfigAddUSerPath(authConfigId: string): string {
+    return `/go/api/admin/security/auth_configs/add_user/${authConfigId}`;
+  }
+
   static rolesPath(type?: "gocd" | "plugin") {
     if (type) {
       return `/go/api/admin/security/roles?type=${type}`;

@@ -23,12 +23,15 @@ import com.thoughtworks.go.api.base.OutputWriter;
 import com.thoughtworks.go.api.representers.JsonReader;
 import com.thoughtworks.go.api.spring.ApiAuthenticationHelper;
 import com.thoughtworks.go.api.util.GsonTransformer;
+import com.thoughtworks.go.apiv1.securityauthconfig.representers.CreateUserRepresenter;
 import com.thoughtworks.go.apiv1.securityauthconfig.representers.SecurityAuthConfigRepresenter;
 import com.thoughtworks.go.apiv1.securityauthconfig.representers.SecurityAuthConfigsRepresenter;
 import com.thoughtworks.go.config.SecurityAuthConfig;
 import com.thoughtworks.go.config.SecurityAuthConfigs;
 import com.thoughtworks.go.config.exceptions.EntityType;
 import com.thoughtworks.go.config.exceptions.HttpException;
+import com.thoughtworks.go.config.exceptions.RecordNotFoundException;
+import com.thoughtworks.go.plugin.access.authorization.AuthorizationExtension;
 import com.thoughtworks.go.server.service.EntityHashingService;
 import com.thoughtworks.go.server.service.SecurityAuthConfigService;
 import com.thoughtworks.go.server.service.result.HttpLocalizedOperationResult;
@@ -52,13 +55,18 @@ public class SecurityAuthConfigControllerV1 extends ApiController implements Spa
     private SecurityAuthConfigService securityAuthConfigService;
     private final ApiAuthenticationHelper apiAuthenticationHelper;
     private EntityHashingService entityHashingService;
+    private AuthorizationExtension authorizationExtension;
 
     @Autowired
-    public SecurityAuthConfigControllerV1(SecurityAuthConfigService securityAuthConfigService, ApiAuthenticationHelper apiAuthenticationHelper, EntityHashingService entityHashingService) {
+    public SecurityAuthConfigControllerV1(SecurityAuthConfigService securityAuthConfigService,
+                                          ApiAuthenticationHelper apiAuthenticationHelper,
+                                          EntityHashingService entityHashingService,
+                                          AuthorizationExtension authorizationExtension) {
         super(ApiVersion.v1);
         this.securityAuthConfigService = securityAuthConfigService;
         this.apiAuthenticationHelper = apiAuthenticationHelper;
         this.entityHashingService = entityHashingService;
+        this.authorizationExtension = authorizationExtension;
     }
 
     @Override
@@ -80,6 +88,7 @@ public class SecurityAuthConfigControllerV1 extends ApiController implements Spa
             post("", mimeType, this::create);
             delete(Routes.SecurityAuthConfigAPI.ID, mimeType, this::deleteAuthConfig);
             put(Routes.SecurityAuthConfigAPI.ID, mimeType, this::update);
+            post(Routes.SecurityAuthConfigAPI.ADD_USER, mimeType, this::addUser);
 
             exception(HttpException.class, this::httpException);
         });
@@ -137,6 +146,20 @@ public class SecurityAuthConfigControllerV1 extends ApiController implements Spa
         securityAuthConfigService.delete(currentUsername(), securityAuthConfig, result);
 
         return handleSimpleMessageResponse(response, result);
+    }
+
+    public String addUser(Request request, Response response) throws IOException {
+        String authConfigId = request.params("id");
+        SecurityAuthConfig securityAuthConfig = securityAuthConfigService.getPluginProfiles().find(authConfigId);
+
+        if (securityAuthConfig == null) {
+            throw new RecordNotFoundException(EntityType.SecurityAuthConfig, authConfigId);
+        }
+
+        CreateUserRequest createUserRequest = CreateUserRepresenter.fromJSON(GsonTransformer.getInstance().jsonReaderFrom(request.body()));
+        authorizationExtension.addUser(securityAuthConfig.getPluginId(), createUserRequest.getConfigurationProperties().getConfigurationAsMap(true), securityAuthConfig);
+
+        return writerForTopLevelObject(request, response, writer -> writer.add("message", "User successfully added."));
     }
 
     @Override

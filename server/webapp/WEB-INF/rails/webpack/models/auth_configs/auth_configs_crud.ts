@@ -17,6 +17,7 @@
 import {ApiRequestBuilder, ApiResult, ApiVersion, ObjectWithEtag} from "helpers/api_request_builder";
 import SparkRoutes from "helpers/spark_routes";
 import {AuthConfig, AuthConfigJSON, AuthConfigs} from "models/auth_configs/auth_configs";
+import {Configurations} from "models/shared/configuration";
 
 export class AuthConfigsCRUD {
   private static API_VERSION_HEADER = ApiVersion.v1;
@@ -48,6 +49,12 @@ export class AuthConfigsCRUD {
 
   static delete(id: string) {
     return ApiRequestBuilder.DELETE(SparkRoutes.authConfigPath(id), this.API_VERSION_HEADER)
+                            .then((result: ApiResult<string>) => result.map((body) => JSON.parse(body)));
+  }
+
+  static addUser(authConfig: AuthConfig, properties: Configurations) {
+    return ApiRequestBuilder.POST(SparkRoutes.authConfigAddUSerPath(authConfig.id()), this.API_VERSION_HEADER,
+                                  {payload: {properties: properties.toJSON()}})
                             .then((result: ApiResult<string>) => result.map((body) => JSON.parse(body)));
   }
 

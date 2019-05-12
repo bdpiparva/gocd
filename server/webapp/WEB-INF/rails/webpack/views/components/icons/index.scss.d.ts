@@ -5,6 +5,7 @@ export const disabled: string;
 export const settings: string;
 export const analytics: string;
 export const edit: string;
+export const add: string;
 export const clone: string;
 export const remove: string;
 export const lock: string;

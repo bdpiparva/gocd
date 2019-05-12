@@ -387,6 +387,7 @@ public class Routes {
     public static class SecurityAuthConfigAPI {
         public static final String BASE = "/api/admin/security/auth_configs";
         public static final String ID = "/:id";
+        public static final String ADD_USER = "/add_user/:id";
         public static final String DOC = apiDocsUrl("#auth_configs");
 
         // Internal apis

@@ -18,16 +18,18 @@ import {MithrilViewComponent} from "jsx/mithril-component";
 import * as _ from "lodash";
 import * as m from "mithril";
 import {AuthConfig, AuthConfigs} from "models/auth_configs/auth_configs";
+import {ExtensionType} from "models/shared/plugin_infos_new/extension_type";
 import {PluginInfo} from "models/shared/plugin_infos_new/plugin_info";
 import {CollapsiblePanel} from "views/components/collapsible_panel";
 import {FlashMessage, MessageType} from "views/components/flash_message";
 import {HeaderIcon} from "views/components/header_icon";
-import {Clone, Delete, Edit, IconGroup} from "views/components/icons";
+import {Add, Clone, Delete, Edit, IconGroup} from "views/components/icons";
 import {KeyValuePair} from "views/components/key_value_pair";
 import {CloneOperation, DeleteOperation, EditOperation, RequiresPluginInfos} from "views/pages/page_operations";
 
 interface Attrs extends RequiresPluginInfos, EditOperation<AuthConfig>, CloneOperation<AuthConfig>, DeleteOperation<AuthConfig> {
   authConfigs: AuthConfigs;
+  onAddUser: (authConfig: AuthConfig, e: MouseEvent) => void;
 }
 
 export class AuthConfigsWidget extends MithrilViewComponent<Attrs> {
@@ -48,6 +50,9 @@ export class AuthConfigsWidget extends MithrilViewComponent<Attrs> {
 
         const actionButtons = [
           <IconGroup>
+            <Add data-test-id="auth-config-add-user"
+                 disabled={!this.supportsAddUser(pluginInfo)}
+                 onclick={vnode.attrs.onAddUser.bind(vnode.attrs, authConfig)}/>
             <Edit data-test-id="auth-config-edit"
                   disabled={!pluginInfo}
                   onclick={vnode.attrs.onEdit.bind(vnode.attrs, authConfig)}/>
@@ -78,5 +83,13 @@ export class AuthConfigsWidget extends MithrilViewComponent<Attrs> {
       return <HeaderIcon name="Plugin Icon" imageUrl={pluginInfo.imageUrl}/>;
     }
     return <HeaderIcon/>;
+  }
+
+  private supportsAddUser(pluginInfo: PluginInfo<any> | undefined) {
+    if (pluginInfo && pluginInfo.extensionOfType(ExtensionType.AUTHORIZATION)) {
+      const extension = pluginInfo.extensionOfType(ExtensionType.AUTHORIZATION);
+      return extension && extension.capabilities && extension.capabilities.supportsAddUser;
+    }
+    return false;
   }
 }

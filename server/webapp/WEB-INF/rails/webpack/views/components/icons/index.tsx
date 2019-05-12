@@ -93,6 +93,12 @@ export class Edit extends Icon {
   }
 }
 
+export class Add extends Icon {
+  constructor() {
+    super(styles.add, "Add");
+  }
+}
+
 export class Clone extends Icon {
   constructor() {
     super(styles.clone, "Clone");
