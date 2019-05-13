@@ -304,7 +304,7 @@ public class GitMaterial extends ScmMaterial {
     }
 
     @Override
-    protected UrlArgument getUrlArgument() {
+    public UrlArgument getUrlArgument() {
         return url;
     }
 

@@ -47,6 +47,9 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.xmlunit.assertj.SingleNodeAssert;
 import org.xmlunit.assertj.XmlAssert;
 
 import java.io.File;
@@ -1350,38 +1353,135 @@ public class GoConfigMigrationIntegrationTest {
     }
 
     @Test
-    public void shouldMigrateEverythingAsItIs() throws Exception {
-        String originalConfig = "<pipelines group=\"first\">" +
-                "    <pipeline name=\"Test\" template=\"test_template\">" +
-                "      <materials>" +
-                "          <git url=\"http://\" dest=\"dest_dir14\" />" +
-                "      </materials>" +
-                "     </pipeline>" +
-                "  </pipelines>" +
-                "  <templates>" +
-                "    <pipeline name=\"test_template\">" +
-                "      <stage name=\"Functional\">" +
-                "        <jobs>" +
-                "          <job name=\"Functional\">" +
-                "            <tasks>" +
-                "              <exec command=\"echo\" args=\"Hello World!!!\" />" +
-                "            </tasks>" +
-                "           </job>" +
-                "        </jobs>" +
-                "      </stage>" +
-                "    </pipeline>" +
-                "  </templates>";
+    public void shouldStripCredentialsFromGitMaterialUrlsDefinedInPipelineAsPartOfMigration121() throws Exception {
+        String configXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                        "<cruise schemaVersion='120'>" +
+                        "  <pipelines group='first'>" +
+                        "    <pipeline name='Test' template='test_template'>" +
+                        "      <materials>" +
+                        "          <git url='https://example.com/xxx' dest='dest_dir1'/>" +
+                        "          <git url='https://example.com:8443/xxx' dest='dest_dir2' />" +
+                        "          <git url='https://foo@example.com/yyy' dest='dest_dir3' />" +
+                        "          <git url='https://foo:@example.com/yyy' dest='dest_dir4' />" +
+                        "          <git url='https://:bar@example.com/yyy' dest='dest_dir5' />" +
+                        "          <git url='https://foo:bar@example.com/yyy' dest='dest_dir6' />" +
+                        "          <git url='https://foo@example.com:8154/aaa' dest='dest_dir7' />" +
+                        "          <git url='https://foo:@example.com:8154/vbb' dest='dest_dir8' />" +
+                        "          <git url='https://:bar@example.com:8154/ccc' dest='dest_dir9' />" +
+                        "          <git url='https://foo:bar@example.com:8154/eee' dest='dest_dir10' />" +
+                        "          <git url='git@example.com/ddd' dest='dest_dir11' />" +
+                        "          <git url='git@example.com:8154/ddd' dest='dest_dir12' />" +
+                        " <!-- bad urls, but valid as per XSD --> " +
+                        "          <git url='https://' dest='dest_dir13' />" +
+                        "          <git url='http://' dest='dest_dir14' />" +
+                        "      </materials>" +
+                        "     </pipeline>" +
+                        "  </pipelines>" +
+                        "  <templates>" +
+                        "    <pipeline name='test_template'>" +
+                        "      <stage name='Functional'>" +
+                        "        <jobs>" +
+                        "          <job name='Functional'>" +
+                        "            <tasks>" +
+                        "              <exec command='echo' args='Hello World!!!' />" +
+                        "            </tasks>" +
+                        "           </job>" +
+                        "        </jobs>" +
+                        "      </stage>" +
+                        "    </pipeline>" +
+                        "  </templates>" +
+                        "</cruise>";
+
+        final String migratedXml = migrateXmlString(configXml, 120, 121);
+
+        assertPipelineMaterial(migratedXml, 1, "git", "https://example.com/xxx", null, null);
+        assertPipelineMaterial(migratedXml, 2, "git", "https://example.com:8443/xxx", null, null);
+        assertPipelineMaterial(migratedXml, 3, "git", "https://example.com/yyy", "foo", null);
+        assertPipelineMaterial(migratedXml, 4, "git", "https://example.com/yyy", "foo", null);
+        assertPipelineMaterial(migratedXml, 5, "git", "https://example.com/yyy", null, "bar");
+        assertPipelineMaterial(migratedXml, 6, "git", "https://example.com/yyy", "foo", "bar");
+        assertPipelineMaterial(migratedXml, 7, "git", "https://example.com:8154/aaa", "foo", null);
+        assertPipelineMaterial(migratedXml, 8, "git", "https://example.com:8154/vbb", "foo", null);
+        assertPipelineMaterial(migratedXml, 9, "git", "https://example.com:8154/ccc", null, "bar");
+        assertPipelineMaterial(migratedXml, 10, "git", "https://example.com:8154/eee", "foo", "bar");
+        assertPipelineMaterial(migratedXml, 11, "git", "git@example.com/ddd", null, null);
+        assertPipelineMaterial(migratedXml, 12, "git", "git@example.com:8154/ddd", null, null);
+        assertPipelineMaterial(migratedXml, 13, "git", "https://", null, null);
+        assertPipelineMaterial(migratedXml, 14, "git", "http://", null, null);
+    }
+
+    @Test
+    public void shouldStripCredentialsFromGitMaterialUrlsDefinedInConfigRepoAsPartOfMigration121() throws Exception {
+        String configRepoTemplate = "<config-repo pluginId=\"json.config.plugin\" id=\"some-id\"><git url=\"%s\" /></config-repo>\n";
 
         String configXml =
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                        "<cruise schemaVersion=\"120\">" + originalConfig + "</cruise>";
-
-        String expectedConfig =
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                        "<cruise schemaVersion=\"121\">" + originalConfig + "</cruise>";
+                        "<cruise schemaVersion='120'>" +
+                        "   <config-repos>\n" +
+                        String.format(configRepoTemplate, "https://example.com/xxx") +
+                        String.format(configRepoTemplate, "https://example.com:8443/xxx") +
+                        String.format(configRepoTemplate, "https://foo@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://foo:@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://:bar@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://foo:bar@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://foo@example.com:8154/aaa") +
+                        String.format(configRepoTemplate, "https://foo:@example.com:8154/vbb") +
+                        String.format(configRepoTemplate, "https://:bar@example.com:8154/ccc") +
+                        String.format(configRepoTemplate, "https://foo:bar@example.com:8154/eee") +
+                        String.format(configRepoTemplate, "git@example.com/ddd") +
+                        String.format(configRepoTemplate, "git@example.com:8154/ddd") +
+                        String.format(configRepoTemplate, "https://") +
+                        String.format(configRepoTemplate, "http://") +
+                        "   </config-repos>" +
+                        "</cruise>";
 
         final String migratedXml = migrateXmlString(configXml, 120, 121);
-        XmlAssert.assertThat(migratedXml).and(expectedConfig).areIdentical();
+
+        assertConfigRepoMaterial(migratedXml, 1, "git", "https://example.com/xxx", null, null);
+        assertConfigRepoMaterial(migratedXml, 2, "git", "https://example.com:8443/xxx", null, null);
+        assertConfigRepoMaterial(migratedXml, 3, "git", "https://example.com/yyy", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 4, "git", "https://example.com/yyy", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 5, "git", "https://example.com/yyy", null, "bar");
+        assertConfigRepoMaterial(migratedXml, 6, "git", "https://example.com/yyy", "foo", "bar");
+        assertConfigRepoMaterial(migratedXml, 7, "git", "https://example.com:8154/aaa", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 8, "git", "https://example.com:8154/vbb", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 9, "git", "https://example.com:8154/ccc", null, "bar");
+        assertConfigRepoMaterial(migratedXml, 10, "git", "https://example.com:8154/eee", "foo", "bar");
+        assertConfigRepoMaterial(migratedXml, 11, "git", "git@example.com/ddd", null, null);
+        assertConfigRepoMaterial(migratedXml, 12, "git", "git@example.com:8154/ddd", null, null);
+        assertConfigRepoMaterial(migratedXml, 13, "git", "https://", null, null);
+        assertConfigRepoMaterial(migratedXml, 14, "git", "http://", null, null);
+    }
+
+    private void assertPipelineMaterial(String migratedConfigString, int index, String tag, String url, String username, String password) {
+        SingleNodeAssert assertion = XmlAssert.assertThat(migratedConfigString).nodesByXPath("(//cruise/pipelines/pipeline/materials/" + tag + ")[" + index + "]")
+                .hasSize(1)
+                .first();
+        assertMaterial(assertion, url, username, password);
+    }
+
+    private void assertConfigRepoMaterial(String migratedConfigString, int index, String tag, String url, String username, String password) {
+        SingleNodeAssert assertion = XmlAssert.assertThat(migratedConfigString).nodesByXPath("(//cruise/config-repos/config-repo/" + tag + ")[" + index + "]")
+                .hasSize(1)
+                .first();
+        assertMaterial(assertion, url, username, password);
+    }
+
+    private void assertMaterial(SingleNodeAssert assertion, String url, String username, String password) {
+        assertion.hasAttribute("url", url);
+
+        if (username == null) {
+            assertion.doesNotHaveAttribute("username");
+        } else {
+            assertion.hasAttribute("username", username);
+        }
+
+        if (password == null) {
+            assertion.doesNotHaveAttribute("password");
+        } else {
+            assertion.hasAttribute("password", password);
+        }
     }
 
     private void assertStringsIgnoringCarriageReturnAreEqual(String expected, String actual) {

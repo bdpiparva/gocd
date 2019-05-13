@@ -16,14 +16,14 @@
 
 package com.thoughtworks.go.config.materials.mercurial;
 
-import com.thoughtworks.go.config.*;
+import com.thoughtworks.go.config.CaseInsensitiveString;
+import com.thoughtworks.go.config.ConfigSaveValidationContext;
 import com.thoughtworks.go.config.materials.AbstractMaterialConfig;
 import com.thoughtworks.go.config.materials.Filter;
 import com.thoughtworks.go.config.materials.IgnoredFiles;
 import com.thoughtworks.go.config.materials.ScmMaterialConfig;
 import com.thoughtworks.go.security.GoCipher;
 import com.thoughtworks.go.util.ReflectionUtil;
-import com.thoughtworks.go.util.command.HgUrlArgument;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,8 +36,6 @@ import static com.thoughtworks.go.config.materials.AbstractMaterialConfig.MATERI
 import static com.thoughtworks.go.config.materials.ScmMaterialConfig.FOLDER;
 import static com.thoughtworks.go.config.materials.ScmMaterialConfig.URL;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class HgMaterialConfigTest {
     private HgMaterialConfig hgMaterialConfig;
@@ -270,11 +268,55 @@ class HgMaterialConfigTest {
         }
     }
 
-    private ValidationContext mockValidationContextForSecretParams(SecretConfig... secretConfigs) {
-        final ValidationContext validationContext = mock(ValidationContext.class);
-        final CruiseConfig cruiseConfig = mock(CruiseConfig.class);
-        when(validationContext.getCruiseConfig()).thenReturn(cruiseConfig);
-        when(cruiseConfig.getSecretConfigs()).thenReturn(new SecretConfigs(secretConfigs));
-        return validationContext;
+    @Nested
+    class FingerPrintShouldNotChangeBecauseOfUrlDenormalize {
+        @Test
+        void shouldNotChangeFingerprintForHttpUrlWithCredentials() {
+            HgMaterialConfig migratedConfig = new HgMaterialConfig("http://github.com/gocd/gocd", "my-branch");
+            migratedConfig.setUserName("bobfoo@example.com");
+            migratedConfig.setPassword("p@ssw&rd:");
+            assertThat(migratedConfig.getFingerprint()).isEqualTo("ff407f3ab9623d2a87c7c7037388863e30711ccda837fee54685ae490cea9b1b");
+
+        }
+
+        @Test
+        void shouldNotChangeFingerprintForHttpsUrlWithCredentials() {
+            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
+            migratedConfig.setUserName("bobfoo@example.com");
+            migratedConfig.setPassword("p@ssw&rd:");
+            assertThat(migratedConfig.getFingerprint()).isEqualTo("0128b4baa42f594edebf0aa8b03accb775437f87e24c091df43f7089d9273379");
+
+        }
+
+        @Test
+        void shouldNotChangeFingerprintForHttpUrlWithUsername() {
+            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
+            migratedConfig.setUserName("some-hex-key");
+
+            assertThat(migratedConfig.getFingerprint()).isEqualTo("740752da427d67093b8e41d2484d0408caa7a6e6aa39df670789a35d36a1c4fd");
+        }
+
+        @Test
+        void shouldChangeFingerprintForHttpUrlWithUsernameAndColonWithNoPassword() {
+            HgMaterialConfig config = new HgMaterialConfig("https://some-hex-key:@github.com/gocd/gocd", "my-branch");
+            assertThat(config.getFingerprint()).isNotEqualTo("2a8d3901b89ab34c75b5a5a0ce2fccaf1deef76e30e9534c9770e123534813ba");
+            assertThat(config.getFingerprint()).isEqualTo("740752da427d67093b8e41d2484d0408caa7a6e6aa39df670789a35d36a1c4fd");
+
+            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
+            migratedConfig.setUserName("some-hex-key");
+
+            assertThat(config.getFingerprint()).isEqualTo(migratedConfig.getFingerprint());
+        }
+
+        @Test
+        void shouldNotChangeFingerprintForHttpUrlWithPassword() {
+            HgMaterialConfig config = new HgMaterialConfig("https://:some-hex-key@github.com/gocd/gocd", "my-branch");
+            assertThat(config.getFingerprint()).isEqualTo("a8fa1c0729bd9687f31493e97281339cc8987779264e1f59d741be264c738f53");
+
+            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
+            migratedConfig.setPassword("some-hex-key");
+
+            assertThat(config.getFingerprint()).isEqualTo(migratedConfig.getFingerprint());
+        }
     }
 }
