@@ -196,15 +196,17 @@ class HgMaterialConfigTest {
         }
 
         @Test
-        void shouldNotConsiderPasswordAttributesForGeneratingFingerPrint() {
-            HgMaterialConfig withoutPassword = new HgMaterialConfig("https://github.com/gocd", "dest");
-            withoutPassword.setUserName("bob");
-
+        void shouldConsiderPasswordAttributesForGeneratingFingerPrint() {
             HgMaterialConfig withPassword = new HgMaterialConfig("https://github.com/gocd", "dest");
             withPassword.setUserName("bob");
             withPassword.setPassword("pass");
 
-            assertThat(withoutPassword.getFingerprint()).isEqualTo(withPassword.getFingerprint());
+            HgMaterialConfig withoutPassword = new HgMaterialConfig("https://github.com/gocd", "dest");
+            withoutPassword.setUserName("bob");
+
+            assertThat(withPassword.getFingerprint()).isEqualTo("53981e52ce53ac9c58bbc00868df5f6cba7d97c17844da97a94a65837f2fd1a4");
+            assertThat(withoutPassword.getFingerprint()).isEqualTo("aac496fb490cf99dcdb9a88c8bac5fb9cad5774a1ee074f74bd9e85ff2084685");
+            assertThat(withPassword.getFingerprint()).isNotEqualTo(withoutPassword.getFingerprint());
         }
 
         @Test
@@ -265,58 +267,6 @@ class HgMaterialConfigTest {
             hgMaterialConfig.setConfigAttributes(Collections.singletonMap(FOLDER, "../a"));
             hgMaterialConfig.validate(new ConfigSaveValidationContext(null));
             assertThat(hgMaterialConfig.errors().on(FOLDER)).isEqualTo("Dest folder '../a' is not valid. It must be a sub-directory of the working folder.");
-        }
-    }
-
-    @Nested
-    class FingerPrintShouldNotChangeBecauseOfUrlDenormalize {
-        @Test
-        void shouldNotChangeFingerprintForHttpUrlWithCredentials() {
-            HgMaterialConfig migratedConfig = new HgMaterialConfig("http://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("bobfoo@example.com");
-            migratedConfig.setPassword("p@ssw&rd:");
-            assertThat(migratedConfig.getFingerprint()).isEqualTo("ff407f3ab9623d2a87c7c7037388863e30711ccda837fee54685ae490cea9b1b");
-
-        }
-
-        @Test
-        void shouldNotChangeFingerprintForHttpsUrlWithCredentials() {
-            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("bobfoo@example.com");
-            migratedConfig.setPassword("p@ssw&rd:");
-            assertThat(migratedConfig.getFingerprint()).isEqualTo("0128b4baa42f594edebf0aa8b03accb775437f87e24c091df43f7089d9273379");
-
-        }
-
-        @Test
-        void shouldNotChangeFingerprintForHttpUrlWithUsername() {
-            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("some-hex-key");
-
-            assertThat(migratedConfig.getFingerprint()).isEqualTo("740752da427d67093b8e41d2484d0408caa7a6e6aa39df670789a35d36a1c4fd");
-        }
-
-        @Test
-        void shouldChangeFingerprintForHttpUrlWithUsernameAndColonWithNoPassword() {
-            HgMaterialConfig config = new HgMaterialConfig("https://some-hex-key:@github.com/gocd/gocd", "my-branch");
-            assertThat(config.getFingerprint()).isNotEqualTo("2a8d3901b89ab34c75b5a5a0ce2fccaf1deef76e30e9534c9770e123534813ba");
-            assertThat(config.getFingerprint()).isEqualTo("740752da427d67093b8e41d2484d0408caa7a6e6aa39df670789a35d36a1c4fd");
-
-            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("some-hex-key");
-
-            assertThat(config.getFingerprint()).isEqualTo(migratedConfig.getFingerprint());
-        }
-
-        @Test
-        void shouldNotChangeFingerprintForHttpUrlWithPassword() {
-            HgMaterialConfig config = new HgMaterialConfig("https://:some-hex-key@github.com/gocd/gocd", "my-branch");
-            assertThat(config.getFingerprint()).isEqualTo("a8fa1c0729bd9687f31493e97281339cc8987779264e1f59d741be264c738f53");
-
-            HgMaterialConfig migratedConfig = new HgMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setPassword("some-hex-key");
-
-            assertThat(config.getFingerprint()).isEqualTo(migratedConfig.getFingerprint());
         }
     }
 }

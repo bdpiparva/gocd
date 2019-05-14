@@ -64,6 +64,11 @@ public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttribu
             parameters.put("username", userName);
         }
 
+        String password = getPassword();
+        if (isNotBlank(password)) {
+            parameters.put("password", password);
+        }
+
         if (isNotBlank(branch)) {
             parameters.put("branch", branch);
         }

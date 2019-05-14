@@ -229,15 +229,17 @@ class GitMaterialConfigTest {
         }
 
         @Test
-        void shouldNotConsiderPasswordAttributesForGeneratingFingerPrint() {
-            GitMaterialConfig withoutPassword = new GitMaterialConfig("https://github.com/gocd");
-            withoutPassword.setUserName("bob");
-
+        void shouldConsiderPasswordAttributesForGeneratingFingerPrint() {
             GitMaterialConfig withPassword = new GitMaterialConfig("https://github.com/gocd");
             withPassword.setUserName("bob");
             withPassword.setPassword("pass");
 
-            assertThat(withoutPassword.getFingerprint()).isEqualTo(withPassword.getFingerprint());
+            GitMaterialConfig withoutPassword = new GitMaterialConfig("https://github.com/gocd");
+            withoutPassword.setUserName("bob");
+
+            assertThat(withPassword.getFingerprint()).isEqualTo("54588865cd963e372ea59c5970380657c5dd6d901c101951bcfc73db603dcb69");
+            assertThat(withoutPassword.getFingerprint()).isEqualTo("6c5c5ef53a996d982bff772eb0ffbe7cb7f626d54407cad1440f50e6711c4272");
+            assertThat(withPassword.getFingerprint()).isNotEqualTo(withoutPassword.getFingerprint());
         }
 
         @Test
@@ -250,58 +252,6 @@ class GitMaterialConfigTest {
             assertThat(gitMaterialWithCredentialsInUrl.getFingerprint())
                     .isNotEqualTo(gitMaterialWithCredentialsAsAttribute.getFingerprint());
 
-        }
-    }
-
-    @Nested
-    class FingerPrintShouldNotChangeBecauseOfUrlDenormalize {
-        @Test
-        void shouldNotChangeFingerprintForHttpUrlWithCredentials() {
-            GitMaterialConfig migratedConfig = new GitMaterialConfig("http://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("bobfoo@example.com");
-            migratedConfig.setPassword("p@ssw&rd:");
-            assertThat(migratedConfig.getFingerprint()).isEqualTo("d9ff4f64572b94d169291ea2e0b2a7bb1a65a9770023ccd6d404bf90342f6803");
-
-        }
-
-        @Test
-        void shouldNotChangeFingerprintForHttpsUrlWithCredentials() {
-            GitMaterialConfig migratedConfig = new GitMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("bobfoo@example.com");
-            migratedConfig.setPassword("p@ssw&rd:");
-            assertThat(migratedConfig.getFingerprint()).isEqualTo("8175cb458dcc59b18fd26e00027aede864fd37e781eccaaab025643a846e7507");
-
-        }
-
-        @Test
-        void shouldNotChangeFingerprintForHttpUrlWithUsername() {
-            GitMaterialConfig migratedConfig = new GitMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("some-hex-key");
-
-            assertThat(migratedConfig.getFingerprint()).isEqualTo("872fe03fc56d7fbabef64cb30b9e7724116b950ed7e7d3ff47941fd3fa0a239c");
-        }
-
-        @Test
-        void shouldChangeFingerprintForHttpUrlWithUsernameAndColonWithNoPassword() {
-            GitMaterialConfig config = new GitMaterialConfig("https://some-hex-key:@github.com/gocd/gocd", "my-branch");
-            assertThat(config.getFingerprint()).isNotEqualTo("b06945f3677210eda12f9ef48f08ca6637c5c49a931635ad8bb908c11b8d145d");
-            assertThat(config.getFingerprint()).isEqualTo("872fe03fc56d7fbabef64cb30b9e7724116b950ed7e7d3ff47941fd3fa0a239c");
-
-            GitMaterialConfig migratedConfig = new GitMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setUserName("some-hex-key");
-
-            assertThat(config.getFingerprint()).isEqualTo(migratedConfig.getFingerprint());
-        }
-
-        @Test
-        void shouldNotChangeFingerprintForHttpUrlWithPassword() {
-            GitMaterialConfig config = new GitMaterialConfig("https://:some-hex-key@github.com/gocd/gocd", "my-branch");
-            assertThat(config.getFingerprint()).isEqualTo("8d03776a5ae4a116874b3abe1af1281dbd7a21733ba83b5458a556f1e688a89e");
-
-            GitMaterialConfig migratedConfig = new GitMaterialConfig("https://github.com/gocd/gocd", "my-branch");
-            migratedConfig.setPassword("some-hex-key");
-
-            assertThat(config.getFingerprint()).isEqualTo(migratedConfig.getFingerprint());
         }
     }
 }

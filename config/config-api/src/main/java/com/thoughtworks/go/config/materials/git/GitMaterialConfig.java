@@ -89,6 +89,11 @@ public class GitMaterialConfig extends ScmMaterialConfig {
         if (isNotBlank(this.userName)) {
             parameters.put("username", userName);
         }
+
+        String password = getPassword();
+        if (isNotBlank(password)) {
+            parameters.put("password", password);
+        }
     }
 
     @Override
