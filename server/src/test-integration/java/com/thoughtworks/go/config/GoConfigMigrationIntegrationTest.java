@@ -1454,6 +1454,114 @@ public class GoConfigMigrationIntegrationTest {
         assertConfigRepoMaterial(migratedXml, 14, "git", "http://", null, null);
     }
 
+    @Test
+    public void shouldStripCredentialsFromHgMaterialUrlsDefinedInConfigRepoAsPartOfMigration123() throws Exception {
+        String configRepoTemplate = "<config-repo pluginId=\"json.config.plugin\" id=\"some-id\"><hg url=\"%s\" /></config-repo>\n";
+
+        String configXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                        "<cruise schemaVersion='122'>" +
+                        "   <config-repos>\n" +
+                        String.format(configRepoTemplate, "https://example.com/xxx##feature") +
+                        String.format(configRepoTemplate, "https://example.com:8443/xxx") +
+                        String.format(configRepoTemplate, "https://foo@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://foo:@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://:bar@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://foo:bar@example.com/yyy") +
+                        String.format(configRepoTemplate, "https://foo@example.com:8154/aaa") +
+                        String.format(configRepoTemplate, "https://foo:@example.com:8154/vbb") +
+                        String.format(configRepoTemplate, "https://:bar@example.com:8154/ccc") +
+                        String.format(configRepoTemplate, "https://foo:bar@example.com:8154/eee") +
+                        String.format(configRepoTemplate, "git@example.com/ddd") +
+                        String.format(configRepoTemplate, "git@example.com:8154/ddd") +
+                        String.format(configRepoTemplate, "https://") +
+                        String.format(configRepoTemplate, "http://") +
+                        "   </config-repos>" +
+                        "</cruise>";
+
+        final String migratedXml = migrateXmlString(configXml, 122, 123);
+        
+        assertConfigRepoMaterial(migratedXml, 1, "hg", "https://example.com/xxx", null, null);
+        assertConfigRepoMaterial(migratedXml, 2, "hg", "https://example.com:8443/xxx", null, null);
+        assertConfigRepoMaterial(migratedXml, 3, "hg", "https://example.com/yyy", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 4, "hg", "https://example.com/yyy", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 5, "hg", "https://example.com/yyy", null, "bar");
+        assertConfigRepoMaterial(migratedXml, 6, "hg", "https://example.com/yyy", "foo", "bar");
+        assertConfigRepoMaterial(migratedXml, 7, "hg", "https://example.com:8154/aaa", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 8, "hg", "https://example.com:8154/vbb", "foo", null);
+        assertConfigRepoMaterial(migratedXml, 9, "hg", "https://example.com:8154/ccc", null, "bar");
+        assertConfigRepoMaterial(migratedXml, 10, "hg", "https://example.com:8154/eee", "foo", "bar");
+        assertConfigRepoMaterial(migratedXml, 11, "hg", "git@example.com/ddd", null, null);
+        assertConfigRepoMaterial(migratedXml, 12, "hg", "git@example.com:8154/ddd", null, null);
+        assertConfigRepoMaterial(migratedXml, 13, "hg", "https://", null, null);
+        assertConfigRepoMaterial(migratedXml, 14, "hg", "http://", null, null);
+
+        XmlAssert.assertThat(migratedXml).nodesByXPath("(//cruise/config-repos/config-repo/hg)[1]")
+                .haveAttribute("branch", "feature");
+    }
+
+    @Test
+    public void shouldStripCredentialsFromHgMaterialUrlsDefinedInPipelineAsPartOfMigration123() throws Exception {
+        String configXml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                        "<cruise schemaVersion='122'>" +
+                        "  <pipelines group='first'>" +
+                        "    <pipeline name='Test' template='test_template'>" +
+                        "      <materials>" +
+                        "          <hg url='https://example.com/xxx##feature' dest='dest_dir1'/>" +
+                        "          <hg url='https://example.com:8443/xxx' dest='dest_dir2' />" +
+                        "          <hg url='https://foo@example.com/yyy' dest='dest_dir3' />" +
+                        "          <hg url='https://foo:@example.com/yyy' dest='dest_dir4' />" +
+                        "          <hg url='https://:bar@example.com/yyy' dest='dest_dir5' />" +
+                        "          <hg url='https://foo:bar@example.com/yyy' dest='dest_dir6' />" +
+                        "          <hg url='https://foo@example.com:8154/aaa' dest='dest_dir7' />" +
+                        "          <hg url='https://foo:@example.com:8154/vbb' dest='dest_dir8' />" +
+                        "          <hg url='https://:bar@example.com:8154/ccc' dest='dest_dir9' />" +
+                        "          <hg url='https://foo:bar@example.com:8154/eee' dest='dest_dir10' />" +
+                        "          <hg url='git@example.com/ddd' dest='dest_dir11' />" +
+                        "          <hg url='git@example.com:8154/ddd' dest='dest_dir12' />" +
+                        " <!-- bad urls, but valid as per XSD --> " +
+                        "          <hg url='https://' dest='dest_dir13' />" +
+                        "          <hg url='http://' dest='dest_dir14' />" +
+                        "      </materials>" +
+                        "     </pipeline>" +
+                        "  </pipelines>" +
+                        "  <templates>" +
+                        "    <pipeline name='test_template'>" +
+                        "      <stage name='Functional'>" +
+                        "        <jobs>" +
+                        "          <job name='Functional'>" +
+                        "            <tasks>" +
+                        "              <exec command='echo' args='Hello World!!!' />" +
+                        "            </tasks>" +
+                        "           </job>" +
+                        "        </jobs>" +
+                        "      </stage>" +
+                        "    </pipeline>" +
+                        "  </templates>" +
+                        "</cruise>";
+
+        final String migratedXml = migrateXmlString(configXml, 122, 123);
+
+        assertPipelineMaterial(migratedXml, 1, "hg", "https://example.com/xxx", null, null);
+        assertPipelineMaterial(migratedXml, 2, "hg", "https://example.com:8443/xxx", null, null);
+        assertPipelineMaterial(migratedXml, 3, "hg", "https://example.com/yyy", "foo", null);
+        assertPipelineMaterial(migratedXml, 4, "hg", "https://example.com/yyy", "foo", null);
+        assertPipelineMaterial(migratedXml, 5, "hg", "https://example.com/yyy", null, "bar");
+        assertPipelineMaterial(migratedXml, 6, "hg", "https://example.com/yyy", "foo", "bar");
+        assertPipelineMaterial(migratedXml, 7, "hg", "https://example.com:8154/aaa", "foo", null);
+        assertPipelineMaterial(migratedXml, 8, "hg", "https://example.com:8154/vbb", "foo", null);
+        assertPipelineMaterial(migratedXml, 9, "hg", "https://example.com:8154/ccc", null, "bar");
+        assertPipelineMaterial(migratedXml, 10, "hg", "https://example.com:8154/eee", "foo", "bar");
+        assertPipelineMaterial(migratedXml, 11, "hg", "git@example.com/ddd", null, null);
+        assertPipelineMaterial(migratedXml, 12, "hg", "git@example.com:8154/ddd", null, null);
+        assertPipelineMaterial(migratedXml, 13, "hg", "https://", null, null);
+        assertPipelineMaterial(migratedXml, 14, "hg", "http://", null, null);
+
+        XmlAssert.assertThat(migratedXml).nodesByXPath("(//cruise/pipelines/pipeline/materials/hg)[1]")
+                .haveAttribute("branch", "feature");
+    }
+
     private void assertPipelineMaterial(String migratedConfigString, int index, String tag, String url, String username, String password) {
         SingleNodeAssert assertion = XmlAssert.assertThat(migratedConfigString).nodesByXPath("(//cruise/pipelines/pipeline/materials/" + tag + ")[" + index + "]")
                 .hasSize(1)

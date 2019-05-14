@@ -4366,6 +4366,121 @@ public class MagicalGoConfigXmlLoaderTest {
         }
     }
 
+    @Test
+    void shouldNormalizeGitMaterialUrlInPipelineConfigAsPartOf121() throws Exception {
+        String configContent = "<pipelines>"
+                + "      <pipeline name=\"p1\">"
+                + "         <materials> "
+                + "           <git url=\"https://github.com/gocd\" username=\"bob\" password=\"some-pass\"/>"
+                + "         </materials>  "
+                + "         <stage name=\"s1\">"
+                + "             <jobs>"
+                + "             <job name=\"j1\">"
+                + "                 <tasks>"
+                + "                    <exec command=\"ls\"/>"
+                + "                 </tasks>"
+                + "             </job>"
+                + "             </jobs>"
+                + "         </stage>"
+                + "      </pipeline>"
+                + "    </pipelines>";
+
+        String configXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<cruise schemaVersion=\"" + CONFIG_SCHEMA_VERSION + "\">\n"
+                + configContent
+                + "</cruise>";
+
+        final GoConfigHolder goConfigHolder = xmlLoader.loadConfigHolder(configXml);
+        final PipelineConfig pipelineConfig = goConfigHolder.config.getPipelineConfigByName(new CaseInsensitiveString("p1"));
+        final GitMaterialConfig actual = (GitMaterialConfig) pipelineConfig.materialConfigs().get(0);
+
+        assertThat(pipelineConfig.materialConfigs()).hasSize(1);
+        assertThat(actual.getUrl()).isEqualTo("https://github.com/gocd");
+        assertThat(actual.getUserName()).isEqualTo("bob");
+        assertThat(actual.getPassword()).isEqualTo("some-pass");
+
+    }
+
+    @Test
+    void shouldNormalizeGitMaterialUrlInConfigRepoAsPartOf121() throws Exception {
+        String configContent = "<config-repos>" +
+                "                   <config-repo id=\"foo\" pluginId=\"bar\">" +
+                "                       <git url=\"https://github.com/gocd\" username=\"bob\" password=\"some-pass\"/>" +
+                "                   </config-repo>" +
+                "               </config-repos>";
+
+        String configXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<cruise schemaVersion=\"" + CONFIG_SCHEMA_VERSION + "\">\n"
+                + configContent
+                + "</cruise>";
+
+        final GoConfigHolder goConfigHolder = xmlLoader.loadConfigHolder(configXml);
+        final ConfigRepoConfig configRepo = goConfigHolder.config.getConfigRepos().getConfigRepo("foo");
+        final GitMaterialConfig actual = (GitMaterialConfig) configRepo.getMaterialConfig();
+
+        assertThat(actual.getUrl()).isEqualTo("https://github.com/gocd");
+        assertThat(actual.getUserName()).isEqualTo("bob");
+        assertThat(actual.getPassword()).isEqualTo("some-pass");
+    }
+
+    @Test
+    void shouldNormalizeHgMaterialUrlInPipelineConfigAsPartOf122() throws Exception {
+        String configContent = "<pipelines>"
+                + "      <pipeline name=\"p1\">"
+                + "         <materials> "
+                + "           <hg url=\"https://github.com/gocd\" username=\"bob\" password=\"some-pass\" branch=\"some-branch\"/>"
+                + "         </materials>  "
+                + "         <stage name=\"s1\">"
+                + "             <jobs>"
+                + "             <job name=\"j1\">"
+                + "                 <tasks>"
+                + "                    <exec command=\"ls\"/>"
+                + "                 </tasks>"
+                + "             </job>"
+                + "             </jobs>"
+                + "         </stage>"
+                + "      </pipeline>"
+                + "    </pipelines>";
+
+        String configXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<cruise schemaVersion=\"" + CONFIG_SCHEMA_VERSION + "\">\n"
+                + configContent
+                + "</cruise>";
+
+        final GoConfigHolder goConfigHolder = xmlLoader.loadConfigHolder(configXml);
+        final PipelineConfig pipelineConfig = goConfigHolder.config.getPipelineConfigByName(new CaseInsensitiveString("p1"));
+        final HgMaterialConfig actual = (HgMaterialConfig) pipelineConfig.materialConfigs().get(0);
+
+        assertThat(pipelineConfig.materialConfigs()).hasSize(1);
+        assertThat(actual.getUrl()).isEqualTo("https://github.com/gocd");
+        assertThat(actual.getUserName()).isEqualTo("bob");
+        assertThat(actual.getPassword()).isEqualTo("some-pass");
+        assertThat(actual.getBranch()).isEqualTo("some-branch");
+    }
+
+    @Test
+    void shouldNormalizeHgMaterialUrlInConfigRepoAsPartOf122() throws Exception {
+        String configContent = "<config-repos>" +
+                "                   <config-repo id=\"foo\" pluginId=\"bar\">" +
+                "                       <hg url=\"https://github.com/gocd\" username=\"bob\" password=\"some-pass\" branch=\"some-branch\" />" +
+                "                   </config-repo>" +
+                "               </config-repos>";
+
+        String configXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<cruise schemaVersion=\"" + CONFIG_SCHEMA_VERSION + "\">\n"
+                + configContent
+                + "</cruise>";
+
+        final GoConfigHolder goConfigHolder = xmlLoader.loadConfigHolder(configXml);
+        final ConfigRepoConfig configRepo = goConfigHolder.config.getConfigRepos().getConfigRepo("foo");
+        final HgMaterialConfig actual = (HgMaterialConfig) configRepo.getMaterialConfig();
+
+        assertThat(actual.getUrl()).isEqualTo("https://github.com/gocd");
+        assertThat(actual.getUserName()).isEqualTo("bob");
+        assertThat(actual.getPassword()).isEqualTo("some-pass");
+        assertThat(actual.getBranch()).isEqualTo("some-branch");
+    }
+
     private void assertConfigProperty(Configuration configuration, String name, String plainTextValue, boolean shouldBeEncrypted) {
         assertThat(configuration.getProperty(name).getValue()).isEqualTo(plainTextValue);
         if (shouldBeEncrypted) {

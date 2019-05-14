@@ -32,10 +32,11 @@ public class HgMaterialConfig extends ScmMaterialConfig implements ParamsAttribu
     private HgUrlArgument url;
 
     @ConfigAttribute(value = "branch", allowNull = true)
-    private String branch;
+    private String branch = HG_DEFAULT_BRANCH;
 
     public static final String TYPE = "HgMaterial";
     public static final String URL = "url";
+    public static final String HG_DEFAULT_BRANCH = "default";
 
     public HgMaterialConfig() {
         super(TYPE);
