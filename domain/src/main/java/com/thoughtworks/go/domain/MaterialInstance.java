@@ -137,7 +137,7 @@ public abstract class MaterialInstance extends PersistentObject {
         return true;
     }
 
-    public abstract Material toOldMaterial(String name, String folder, String password);
+        public abstract Material toOldMaterial(String name, String folder, String password);
 
     protected void setName(String name, AbstractMaterial material) {
         material.setName(name == null ? null : new CaseInsensitiveString(name));

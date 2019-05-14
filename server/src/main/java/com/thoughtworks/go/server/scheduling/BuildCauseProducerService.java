@@ -144,9 +144,9 @@ public class BuildCauseProducerService {
     }
 
     ServerHealthState newProduceBuildCause(PipelineConfig pipelineConfig, BuildType buildType, OperationResult result, long trackingId) {
-        final HashMap<String, String> stringStringHashMap = new HashMap<>();
+        final HashMap<String, String> specifiedRevs = new HashMap<>();
         final HashMap<String, String> stringStringHashMap1 = new HashMap<>();
-        return newProduceBuildCause(pipelineConfig, buildType, new ScheduleOptions(stringStringHashMap, stringStringHashMap1, new HashMap<>()), result, trackingId);
+        return newProduceBuildCause(pipelineConfig, buildType, new ScheduleOptions(specifiedRevs, stringStringHashMap1, new HashMap<>()), result, trackingId);
     }
 
     ServerHealthState newProduceBuildCause(PipelineConfig pipelineConfig, BuildType buildType, ScheduleOptions scheduleOptions, OperationResult result, long trackingId) {

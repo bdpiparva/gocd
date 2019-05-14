@@ -27,8 +27,9 @@ import com.thoughtworks.go.util.command.UrlArgument;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
+import java.util.Objects;
 
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 @ConfigTag("git")
 public class GitMaterialConfig extends ScmMaterialConfig {
@@ -86,16 +87,13 @@ public class GitMaterialConfig extends ScmMaterialConfig {
     protected void appendCriteria(Map<String, Object> parameters) {
         parameters.put(ScmMaterialConfig.URL, url.originalArgument());
         parameters.put("branch", branch);
-        if (isNotBlank(this.userName)) {
-            parameters.put("username", userName);
-        }
-
-        String password = getPassword();
-        if (isNotBlank(password)) {
-            parameters.put("password", password);
-        }
+        parameters.put("username", stripToNull(this.userName));
+        parameters.put("password", stripToNull(hashPassword()));
     }
 
+    private String hashPassword() {
+        return "";
+    }
     @Override
     protected void appendAttributes(Map<String, Object> parameters) {
         parameters.put("url", url);
@@ -134,16 +132,20 @@ public class GitMaterialConfig extends ScmMaterialConfig {
 
         GitMaterialConfig that = (GitMaterialConfig) o;
 
-        if (branch != null ? !branch.equals(that.branch) : that.branch != null) {
+        if (!Objects.equals(branch, that.branch)) {
             return false;
         }
-        if (submoduleFolder != null ? !submoduleFolder.equals(that.submoduleFolder) : that.submoduleFolder != null) {
+        if (!Objects.equals(submoduleFolder, that.submoduleFolder)) {
             return false;
         }
-        if (url != null ? !url.equals(that.url) : that.url != null) {
+        if (!Objects.equals(url, that.url)) {
             return false;
         }
-        if (userName != null ? !userName.equals(that.userName) : that.userName != null) {
+        if (!Objects.equals(userName, that.userName)) {
+            return false;
+        }
+
+        if (!Objects.equals(getPassword(), that.getPassword())) {
             return false;
         }
 
@@ -153,9 +155,11 @@ public class GitMaterialConfig extends ScmMaterialConfig {
     @Override
     public int hashCode() {
         int result = super.hashCode();
+        String password = getPassword();
         result = 31 * result + (url != null ? url.hashCode() : 0);
         result = 31 * result + (branch != null ? branch.hashCode() : 0);
         result = 31 * result + (userName != null ? userName.hashCode() : 0);
+        result = 31 * result + (password != null ? password.hashCode() : 0);
         result = 31 * result + (submoduleFolder != null ? submoduleFolder.hashCode() : 0);
         return result;
     }
