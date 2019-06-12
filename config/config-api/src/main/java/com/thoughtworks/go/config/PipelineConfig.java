@@ -60,7 +60,7 @@ import static org.apache.commons.lang3.StringUtils.substringsBetween;
 @ConfigTag("pipeline")
 @ConfigCollection(StageConfig.class)
 public class PipelineConfig extends BaseCollection<StageConfig> implements ParamScope, ParamsAttributeAware,
-        Validatable, EnvironmentVariableScope, ConfigOriginTraceable {
+        Validatable, EnvironmentVariableScope, ConfigOriginTraceable, SecretParamAware {
     private static final Cloner CLONER = new Cloner();
 
     public static final String LABEL_TEMPLATE = "labelTemplate";
@@ -1047,5 +1047,15 @@ public class PipelineConfig extends BaseCollection<StageConfig> implements Param
 
     public int getDisplayOrderWeight() {
         return displayOrderWeight;
+    }
+
+    @Override
+    public boolean hasSecretParams() {
+        return false;
+    }
+
+    @Override
+    public SecretParams getSecretParams() {
+        return getVariables().getSecretParams();
     }
 }

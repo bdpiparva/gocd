@@ -85,4 +85,17 @@ public class RulesService {
             }
         });
     }
+
+    public void validateSecretConfigReferences(PipelineConfig pipelineConfig) {
+        SecretParams secretParams = pipelineConfig.getSecretParams();
+        CaseInsensitiveString pipelineName = pipelineConfig.name();
+        if (secretParams.isEmpty()) {
+            LOGGER.debug("No secret params available in pipeline {}.", pipelineConfig.name());
+            return;
+        }
+
+        PipelineConfigs group = goConfigService.findGroupByPipeline(pipelineName);
+        String errorMessagePrefix = format("Pipeline: '%s' and Pipeline Group:", pipelineName);
+        validateSecretConfigReferences(secretParams, group.getClass(), group.getGroup(), errorMessagePrefix);
+    }
 }

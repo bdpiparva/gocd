@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.thoughtworks.go.config.rules.SupportedEntity.ENVIRONMENT;
+import static com.thoughtworks.go.config.rules.SupportedEntity.PIPELINE_GROUP;
 import static com.thoughtworks.go.helper.GoConfigMother.configWithSecretConfig;
 import static com.thoughtworks.go.helper.GoConfigMother.defaultCruiseConfig;
 import static com.thoughtworks.go.helper.MaterialsMother.gitMaterial;
@@ -326,6 +327,64 @@ class RulesServiceTest {
             assertThatCode(() -> rulesService.validateSecretConfigReferences(environmentConfig))
                     .isInstanceOf(RulesViolationException.class)
                     .hasMessage("Environment 'dev' is referring to none existing secret config 'secret_config_id'.");
+        }
+    }
+
+    @Nested
+    class ForPipelineConfig{
+        @Test
+        void shouldBeValidIfPipelineConfigDoesNotHaveEnvironmentVariableDefinedUsingSecretParams() {
+            PipelineConfig pipelineConfig = PipelineConfigMother.pipelineConfig("test");
+
+            rulesService.validateSecretConfigReferences(pipelineConfig);
+
+            verifyZeroInteractions(goConfigService);
+        }
+
+        @Test
+        void shouldBeValidIfPipelineConfigCanReferToASecretConfig() {
+            PipelineConfig pipelineConfig = PipelineConfigMother.pipelineConfig("test");
+            PipelineConfigs defaultGroup = PipelineConfigMother.createGroup("dev", pipelineConfig);
+            pipelineConfig.addEnvironmentVariable("Token", "{{SECRET:[secret_config_id][token]}}");
+            Allow allow = new Allow("refer", PIPELINE_GROUP.getType(), "dev");
+            CruiseConfig cruiseConfig = configWithSecretConfig(new SecretConfig("secret_config_id", "cd.go.secret.file", new Rules(allow)));
+
+            when(goConfigService.cruiseConfig()).thenReturn(cruiseConfig);
+
+            when(goConfigService.findGroupByPipeline(new CaseInsensitiveString("test"))).thenReturn(defaultGroup);
+
+            assertThatCode(() -> rulesService.validateSecretConfigReferences(pipelineConfig)).isNull();
+
+            verify(goConfigService, atLeastOnce()).findGroupByPipeline(new CaseInsensitiveString("test"));
+        }
+
+        @Test
+        void shouldErrorOutWhenPipelineConfigCannotReferToASecretConfig() {
+            PipelineConfig pipelineConfig = PipelineConfigMother.pipelineConfig("test");
+            PipelineConfigs pipelineGroup = PipelineConfigMother.createGroup("dev", pipelineConfig);
+            pipelineConfig.addEnvironmentVariable("Token", "{{SECRET:[secret_config_id][token]}}");
+            CruiseConfig cruiseConfig = configWithSecretConfig(new SecretConfig("secret_config_id", "cd.go.secret.file"));
+
+            when(goConfigService.cruiseConfig()).thenReturn(cruiseConfig);
+            when(goConfigService.findGroupByPipeline(new CaseInsensitiveString("test"))).thenReturn(pipelineGroup);
+
+            assertThatCode(() -> rulesService.validateSecretConfigReferences(pipelineConfig))
+                    .isInstanceOf(RulesViolationException.class)
+                    .hasMessage("Pipeline: 'test' and Pipeline Group: 'dev' does not have permission to refer to secrets using SecretConfig: 'secret_config_id'");
+        }
+
+        @Test
+        void shouldErrorOutWhenPipelineConfigIsReferringToNoneExistingSecretConfig() {
+            PipelineConfig pipelineConfig = PipelineConfigMother.pipelineConfig("test");
+            PipelineConfigs pipelineGroup = PipelineConfigMother.createGroup("dev", pipelineConfig);
+            pipelineConfig.addEnvironmentVariable("Token", "{{SECRET:[secret_config_id][token]}}");
+
+            when(goConfigService.cruiseConfig()).thenReturn(defaultCruiseConfig());
+            when(goConfigService.findGroupByPipeline(new CaseInsensitiveString("test"))).thenReturn(pipelineGroup);
+
+            assertThatCode(() -> rulesService.validateSecretConfigReferences(pipelineConfig))
+                    .isInstanceOf(RulesViolationException.class)
+                    .hasMessage("Pipeline: 'test' and Pipeline Group: 'dev' is referring to none existing secret config 'secret_config_id'.");
         }
     }
 

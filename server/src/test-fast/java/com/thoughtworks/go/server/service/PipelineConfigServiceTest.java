@@ -28,8 +28,8 @@ import com.thoughtworks.go.server.domain.Username;
 import com.thoughtworks.go.server.presentation.CanDeleteResult;
 import com.thoughtworks.go.server.service.tasks.PluggableTaskService;
 import com.thoughtworks.go.util.ReflectionUtil;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
@@ -38,11 +38,10 @@ import java.util.UUID;
 import static com.thoughtworks.go.helper.EnvironmentConfigMother.environment;
 import static com.thoughtworks.go.helper.MaterialConfigsMother.git;
 import static com.thoughtworks.go.helper.PipelineConfigMother.createGroup;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-public class PipelineConfigServiceTest {
+class PipelineConfigServiceTest {
 
     private PipelineConfigService pipelineConfigService;
     private CruiseConfig cruiseConfig;
@@ -50,9 +49,10 @@ public class PipelineConfigServiceTest {
     private SecurityService securityService;
     private PluggableTaskService pluggableTaskService;
     private ExternalArtifactsService externalArtifactsService;
+    private RulesService rulesService;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() {
         PipelineConfigs configs = createGroup("group", "pipeline", "in_env");
         downstream(configs);
         cruiseConfig = new BasicCruiseConfig(configs);
@@ -60,7 +60,7 @@ public class PipelineConfigServiceTest {
         PipelineConfig remotePipeline = PipelineConfigMother.pipelineConfig("remote");
         remotePipeline.setOrigin(new RepoConfigOrigin(new ConfigRepoConfig(git("url"), "plugin"), "1234"));
         cruiseConfig.addPipeline("group", remotePipeline);
-
+        rulesService = mock(RulesService.class);
         goConfigService = mock(GoConfigService.class);
         securityService = mock(SecurityService.class);
         pluggableTaskService = mock(PluggableTaskService.class);
@@ -70,25 +70,25 @@ public class PipelineConfigServiceTest {
         when(goConfigService.getConfigForEditing()).thenReturn(cruiseConfig);
         when(goConfigService.getMergedConfigForEditing()).thenReturn(cruiseConfig);
         when(goConfigService.getAllPipelineConfigs()).thenReturn(cruiseConfig.getAllPipelineConfigs());
-        pipelineConfigService = new PipelineConfigService(goConfigService, securityService, pluggableTaskService, null, externalArtifactsService);
+        pipelineConfigService = new PipelineConfigService(goConfigService, securityService, pluggableTaskService, null, externalArtifactsService,rulesService);
     }
 
     @Test
-    public void shouldBeAbleToGetTheCanDeleteStatusOfAllPipelines() {
+    void shouldBeAbleToGetTheCanDeleteStatusOfAllPipelines() {
         Map<CaseInsensitiveString, CanDeleteResult> pipelineToCanDeleteIt = pipelineConfigService.canDeletePipelines();
 
-        assertThat(pipelineToCanDeleteIt.size(), is(4));
-        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("down")), is(new CanDeleteResult(true, "Delete this pipeline.")));
-        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("in_env")), is(new CanDeleteResult(false, "Cannot delete pipeline 'in_env' as it is present in environment 'foo'.")));
-        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("pipeline")), is(new CanDeleteResult(false, "Cannot delete pipeline 'pipeline' as pipeline 'down' depends on it.")));
-        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("remote")), is(new CanDeleteResult(false, "Cannot delete pipeline 'remote' defined in configuration repository 'url at 1234'.")));
+        assertThat(pipelineToCanDeleteIt.size()).isEqualTo(4);
+        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("down"))).isEqualTo(new CanDeleteResult(true, "Delete this pipeline."));
+        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("in_env"))).isEqualTo(new CanDeleteResult(false, "Cannot delete pipeline 'in_env' as it is present in environment 'foo'."));
+        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("pipeline"))).isEqualTo(new CanDeleteResult(false, "Cannot delete pipeline 'pipeline' as pipeline 'down' depends on it."));
+        assertThat(pipelineToCanDeleteIt.get(new CaseInsensitiveString("remote"))).isEqualTo(new CanDeleteResult(false, "Cannot delete pipeline 'remote' defined in configuration repository 'url at 1234'."));
     }
 
     @Test
-    public void shouldGetPipelineConfigBasedOnName() {
+    void shouldGetPipelineConfigBasedOnName() {
         String pipelineName = "pipeline";
         PipelineConfig pipeline = pipelineConfigService.getPipelineConfig(pipelineName);
-        assertThat(pipeline, is(cruiseConfig.pipelineConfigByName(new CaseInsensitiveString(pipelineName))));
+        assertThat(pipeline).isEqualTo(cruiseConfig.pipelineConfigByName(new CaseInsensitiveString(pipelineName)));
     }
 
     private void downstream(PipelineConfigs configs) {
@@ -98,7 +98,7 @@ public class PipelineConfigServiceTest {
     }
 
     @Test
-    public void shouldGetAllViewableOrOperatablePipelineConfigs() throws Exception {
+    void shouldGetAllViewableOrOperatablePipelineConfigs() {
         CruiseConfig cruiseConfig = mock(BasicCruiseConfig.class);
         PipelineConfig p1 = PipelineConfigMother.pipelineConfig("P1");
         PipelineConfig p2 = PipelineConfigMother.pipelineConfig("P2");
@@ -120,13 +120,13 @@ public class PipelineConfigServiceTest {
 
         List<PipelineConfigs> pipelineConfigs = pipelineConfigService.viewableOrOperatableGroupsFor(username);
 
-        assertThat(pipelineConfigs.size(), is(2));
-        assertThat(pipelineConfigs.get(0).getGroup(), is("group1"));
-        assertThat(pipelineConfigs.get(1).getGroup(), is("group3"));
+        assertThat(pipelineConfigs.size()).isEqualTo(2);
+        assertThat(pipelineConfigs.get(0).getGroup()).isEqualTo("group1");
+        assertThat(pipelineConfigs.get(1).getGroup()).isEqualTo("group3");
     }
 
     @Test
-    public void shouldGetAllViewablePipelineConfigs() throws Exception {
+    void shouldGetAllViewablePipelineConfigs() {
         CruiseConfig cruiseConfig = mock(BasicCruiseConfig.class);
         PipelineConfig p1 = PipelineConfigMother.pipelineConfig("P1");
         PipelineConfig p2 = PipelineConfigMother.pipelineConfig("P2");
@@ -142,12 +142,12 @@ public class PipelineConfigServiceTest {
 
         List<PipelineConfigs> pipelineConfigs = pipelineConfigService.viewableOrOperatableGroupsFor(username);
 
-        assertThat(pipelineConfigs.size(), is(1));
-        assertThat(pipelineConfigs.get(0).getGroup(), is("group1"));
+        assertThat(pipelineConfigs.size()).isEqualTo(1);
+        assertThat(pipelineConfigs.get(0).getGroup()).isEqualTo("group1");
     }
 
     @Test
-    public void updatePipelineConfigShouldValidateAllPluggableTasks() {
+    void updatePipelineConfigShouldValidateAllPluggableTasks() {
         PluggableTask xUnit = mock(PluggableTask.class);
         PluggableTask docker = mock(PluggableTask.class);
 
@@ -167,7 +167,7 @@ public class PipelineConfigServiceTest {
     }
 
     @Test
-    public void createPipelineConfigShouldValidateAllPluggableTasks() {
+    void createPipelineConfigShouldValidateAllPluggableTasks() {
         PluggableTask xUnit = mock(PluggableTask.class);
         PluggableTask docker = mock(PluggableTask.class);
 
@@ -187,12 +187,12 @@ public class PipelineConfigServiceTest {
     }
 
     @Test
-    public void shouldGetPipelinesCount() {
-        assertThat(pipelineConfigService.totalPipelinesCount(), is(this.cruiseConfig.allPipelines().size()));
+    void shouldGetPipelinesCount() {
+        assertThat(pipelineConfigService.totalPipelinesCount()).isEqualTo(this.cruiseConfig.allPipelines().size());
     }
 
     @Test
-    public void pipelineCountShouldIncludeConfigRepoPipelinesAsWell() {
+    void pipelineCountShouldIncludeConfigRepoPipelinesAsWell() {
         CruiseConfig mergedCruiseConfig = new Cloner().deepClone(cruiseConfig);
         ReflectionUtil.setField(mergedCruiseConfig, "allPipelineConfigs", null);
         mergedCruiseConfig.addPipeline("default", PipelineConfigMother.pipelineConfig(UUID.randomUUID().toString()));
@@ -200,6 +200,6 @@ public class PipelineConfigServiceTest {
         when(goConfigService.getConfigForEditing()).thenReturn(cruiseConfig);
         when(goConfigService.getAllPipelineConfigs()).thenReturn(mergedCruiseConfig.getAllPipelineConfigs());
 
-        assertThat(pipelineConfigService.totalPipelinesCount(), is(mergedCruiseConfig.allPipelines().size()));
+        assertThat(pipelineConfigService.totalPipelinesCount()).isEqualTo(mergedCruiseConfig.allPipelines().size());
     }
 }

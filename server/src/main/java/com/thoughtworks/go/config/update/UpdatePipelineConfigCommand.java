@@ -20,9 +20,11 @@ import com.thoughtworks.go.config.PipelineConfig;
 import com.thoughtworks.go.config.PipelineConfigSaveValidationContext;
 import com.thoughtworks.go.config.exceptions.EntityType;
 import com.thoughtworks.go.server.domain.Username;
+import com.thoughtworks.go.server.exceptions.RulesViolationException;
 import com.thoughtworks.go.server.service.EntityHashingService;
 import com.thoughtworks.go.server.service.ExternalArtifactsService;
 import com.thoughtworks.go.server.service.GoConfigService;
+import com.thoughtworks.go.server.service.RulesService;
 import com.thoughtworks.go.server.service.result.LocalizedOperationResult;
 
 import static com.thoughtworks.go.config.update.PipelineConfigErrorCopier.copyErrors;
@@ -32,15 +34,23 @@ public class UpdatePipelineConfigCommand extends PipelineConfigCommand {
     private final Username currentUser;
     private final String md5;
     private final LocalizedOperationResult result;
+    private final RulesService rulesService;
     public String group;
 
     public UpdatePipelineConfigCommand(GoConfigService goConfigService, EntityHashingService entityHashingService, PipelineConfig pipelineConfig,
-                                       Username currentUser, String md5, LocalizedOperationResult result, ExternalArtifactsService externalArtifactsService) {
+                                       Username currentUser, String md5, LocalizedOperationResult result,
+                                       ExternalArtifactsService externalArtifactsService, RulesService rulesService) {
         super(pipelineConfig, goConfigService, externalArtifactsService);
         this.entityHashingService = entityHashingService;
         this.currentUser = currentUser;
         this.md5 = md5;
         this.result = result;
+        this.rulesService = rulesService;
+    }
+
+    @Override
+    void validatePublishAndFetchExternalConfigs(PipelineConfig pipelineConfig, CruiseConfig preprocessedConfig) {
+        super.validatePublishAndFetchExternalConfigs(pipelineConfig, preprocessedConfig);
     }
 
     private String getPipelineGroup() {
@@ -60,8 +70,17 @@ public class UpdatePipelineConfigCommand extends PipelineConfigCommand {
         preprocessedPipelineConfig = preprocessedConfig.getPipelineConfigByName(pipelineConfig.name());
         PipelineConfigSaveValidationContext validationContext = PipelineConfigSaveValidationContext.forChain(false, getPipelineGroup(), preprocessedConfig, preprocessedPipelineConfig);
         validatePublishAndFetchExternalConfigs(preprocessedPipelineConfig, preprocessedConfig);
+
+        try {
+            rulesService.validateSecretConfigReferences(preprocessedPipelineConfig);
+        } catch (RulesViolationException e) {
+            result.unprocessableEntity(e.getMessage());
+        }
+
         boolean isValid = preprocessedPipelineConfig.validateTree(validationContext)
-                          && preprocessedPipelineConfig.getAllErrors().isEmpty();
+                && preprocessedPipelineConfig.getAllErrors().isEmpty()
+                && result.isSuccessful();
+        
         if (!isValid) {
             copyErrors(preprocessedPipelineConfig, pipelineConfig);
         }

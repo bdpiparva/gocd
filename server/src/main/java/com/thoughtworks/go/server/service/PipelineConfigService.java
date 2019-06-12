@@ -53,15 +53,19 @@ public class PipelineConfigService {
     private final PluggableTaskService pluggableTaskService;
     private final EntityHashingService entityHashingService;
     private ExternalArtifactsService externalArtifactsService;
+    private RulesService rulesService;
     private static final Logger LOGGER = LoggerFactory.getLogger(PipelineConfigService.class);
 
     @Autowired
-    public PipelineConfigService(GoConfigService goConfigService, SecurityService securityService, PluggableTaskService pluggableTaskService, EntityHashingService entityHashingService, ExternalArtifactsService externalArtifactsService) {
+    public PipelineConfigService(GoConfigService goConfigService, SecurityService securityService,
+                                 PluggableTaskService pluggableTaskService, EntityHashingService entityHashingService,
+                                 ExternalArtifactsService externalArtifactsService, RulesService rulesService) {
         this.goConfigService = goConfigService;
         this.securityService = securityService;
         this.pluggableTaskService = pluggableTaskService;
         this.entityHashingService = entityHashingService;
         this.externalArtifactsService = externalArtifactsService;
+        this.rulesService = rulesService;
     }
 
     public Map<CaseInsensitiveString, CanDeleteResult> canDeletePipelines() {
@@ -137,7 +141,7 @@ public class PipelineConfigService {
 
     public void updatePipelineConfig(final Username currentUser, final PipelineConfig pipelineConfig, final String md5, final LocalizedOperationResult result) {
         validatePluggableTasks(pipelineConfig);
-        UpdatePipelineConfigCommand updatePipelineConfigCommand = new UpdatePipelineConfigCommand(goConfigService, entityHashingService, pipelineConfig, currentUser, md5, result, externalArtifactsService);
+        UpdatePipelineConfigCommand updatePipelineConfigCommand = new UpdatePipelineConfigCommand(goConfigService, entityHashingService, pipelineConfig, currentUser, md5, result, externalArtifactsService, rulesService);
         update(currentUser, pipelineConfig, result, updatePipelineConfigCommand);
     }
 
