@@ -26,7 +26,10 @@ module ApiV1
 
         def test
           material_config = ApiV1::Admin::Pipelines::Materials::MaterialRepresenter.new(ApiV1::Admin::Pipelines::Materials::MaterialRepresenter.get_material_type(params[:type]).new).from_hash(params)
-          group_name = go_config_service.findGroupNameByPipeline(CaseInsensitiveString.new(params[:pipeline_name]))
+          group_name = params[:pipeline_group]
+          if group_name == nil
+            group_name = go_config_service.findGroupNameByPipeline(CaseInsensitiveString.new(params[:pipeline_name]))
+          end
           material_config.validateConcreteScmMaterial(PipelineConfigSaveValidationContext.forChain(false, group_name, go_config_service.cruise_config(), material_config))
           if material_config.errors.any?
             json = ApiV1::Admin::Pipelines::Materials::MaterialRepresenter.new(material_config).to_hash(url_builder: self)
@@ -38,7 +41,7 @@ module ApiV1
 
           material = MaterialConfigConverter.new.toMaterial(material_config)
           if material.respond_to?(:checkConnection)
-            validation_bean = check_connection_for_material material
+            validation_bean = check_connection_for_material(material, group_name)
             if validation_bean.isValid
               render_message('Connection OK.', :ok)
             else
@@ -71,11 +74,11 @@ module ApiV1
           "There was an error with the material configuration.\n" + combined_error_message
         end
 
-        def check_connection_for_material material
+        def check_connection_for_material(material, group_name)
           begin
-            secret_param_resolver.resolve(material.getSecretParams()) if material.is_a?(ScmMaterial)
+            secret_param_resolver.resolve(material, group_name) if material.is_a?(ScmMaterial)
             material.checkConnection(subprocess_execution_context)
-          rescue com.thoughtworks.go.config.exceptions.UnresolvedSecretParamException, com.thoughtworks.go.plugin.access.exceptions.SecretResolutionFailureException => e
+          rescue com.thoughtworks.go.config.exceptions.UnresolvedSecretParamException, com.thoughtworks.go.plugin.access.exceptions.SecretResolutionFailureException, com.thoughtworks.go.server.exceptions.RulesViolationException => e
             com.thoughtworks.go.domain.materials.ValidationBean.notValid(e.message);
           end
         end
