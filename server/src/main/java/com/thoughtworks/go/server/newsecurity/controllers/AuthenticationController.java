@@ -25,6 +25,7 @@ import com.thoughtworks.go.server.service.SecurityAuthConfigService;
 import com.thoughtworks.go.server.service.SecurityService;
 import com.thoughtworks.go.util.Clock;
 import com.thoughtworks.go.util.SystemEnvironment;
+import org.h2.server.web.H2ConsoleWebServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,6 +59,7 @@ public class AuthenticationController {
     private final Clock clock;
     private final PasswordBasedPluginAuthenticationProvider passwordBasedPluginAuthenticationProvider;
     private final WebBasedPluginAuthenticationProvider webBasedPluginAuthenticationProvider;
+    private H2ConsoleWebServlet h2ConsoleWebServlet = new H2ConsoleWebServlet();
 
     @Autowired
     public AuthenticationController(SecurityService securityService,
@@ -70,6 +74,7 @@ public class AuthenticationController {
         this.clock = clock;
         this.passwordBasedPluginAuthenticationProvider = passwordBasedPluginAuthenticationProvider;
         this.webBasedPluginAuthenticationProvider = webBasedPluginAuthenticationProvider;
+        h2ConsoleWebServlet.initialize();
     }
 
     @RequestMapping(value = "/auth/security_check", method = RequestMethod.POST)
@@ -148,6 +153,11 @@ public class AuthenticationController {
         return new RedirectView(redirectUrl, false);
     }
 
+    @RequestMapping({"/h2-console", "/h2-console/*"})
+    public void h2Console(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        h2ConsoleWebServlet.doGet(request, response);
+    }
+
     private boolean securityIsDisabledOrAlreadyLoggedIn(HttpServletRequest request) {
         return !securityService.isSecurityEnabled() || (!isAnonymousAuthenticationToken(request) && SessionUtils.isAuthenticated(request, clock, systemEnvironment));
     }
@@ -185,5 +195,4 @@ public class AuthenticationController {
         }
         return pluginParameterMap;
     }
-
 }
