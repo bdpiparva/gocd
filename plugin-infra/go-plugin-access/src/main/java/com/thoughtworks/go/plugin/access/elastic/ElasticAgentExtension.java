@@ -57,6 +57,7 @@ public class ElasticAgentExtension extends AbstractExtension {
 
 
     public void createAgent(String pluginId, final String autoRegisterKey, final String environment, final Map<String, String> configuration, final Map<String, String> clusterProfileConfiguration, JobIdentifier jobIdentifier) {
+        if (true) throw new RuntimeException("fail the job");
         getVersionedElasticAgentExtension(pluginId).createAgent(pluginId, autoRegisterKey, environment, configuration, clusterProfileConfiguration, jobIdentifier);
     }
 
