@@ -24,6 +24,10 @@ import org.springframework.util.ReflectionUtils;
 import java.lang.management.*;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static java.lang.String.valueOf;
 
 @Component
 public class ThreadInformationProvider implements ServerInfoProvider {
@@ -93,18 +97,8 @@ public class ThreadInformationProvider implements ServerInfoProvider {
             threadStackTrace.put("AllocatedMemory(Bytes)", getAllocatedMemory(threadMXBean, threadInfo));
             LinkedHashMap<String, Object> lockMonitorInfo = new LinkedHashMap<>();
             MonitorInfo[] lockedMonitors = threadInfo.getLockedMonitors();
-            ArrayList<Map<String, Object>> lockedMonitorsJson = new ArrayList<>();
 
-            for (MonitorInfo lockedMonitor : lockedMonitors) {
-                LinkedHashMap<String, Object> lockedMonitorJson = new LinkedHashMap<>();
-                lockedMonitorJson.put("Class", lockedMonitor.getClassName());
-                lockedMonitorJson.put("IdentityHashCode", lockedMonitor.getIdentityHashCode());
-                lockedMonitorJson.put("LockedStackDepth", lockedMonitor.getLockedStackDepth());
-                lockedMonitorJson.put("StackFrame", lockedMonitor.getLockedStackFrame().toString());
-                lockedMonitorsJson.add(lockedMonitorJson);
-            }
-
-            lockMonitorInfo.put("Locked Monitors", lockedMonitorsJson);
+            lockMonitorInfo.put("Locked Monitors", getLockedMonitor(lockedMonitors));
             lockMonitorInfo.put("Locked Synchronizers", asJSON(threadInfo.getLockedSynchronizers()));
             threadStackTrace.put("Lock Monitor Info", lockMonitorInfo);
 
@@ -134,6 +128,20 @@ public class ThreadInformationProvider implements ServerInfoProvider {
             traces.put(threadInfo.getThreadId(), threadStackTrace);
         }
         return traces;
+    }
+
+    private ArrayList<Map<String, Object>> getLockedMonitor(MonitorInfo[] lockedMonitors) {
+        ArrayList<Map<String, Object>> lockedMonitorsJson = new ArrayList<>();
+
+        for (MonitorInfo lockedMonitor : lockedMonitors) {
+            LinkedHashMap<String, Object> lockedMonitorJson = new LinkedHashMap<>();
+            lockedMonitorJson.put("Class", lockedMonitor.getClassName());
+            lockedMonitorJson.put("IdentityHashCode", lockedMonitor.getIdentityHashCode());
+            lockedMonitorJson.put("LockedStackDepth", lockedMonitor.getLockedStackDepth());
+            lockedMonitorJson.put("StackFrame", lockedMonitor.getLockedStackFrame().toString());
+            lockedMonitorsJson.add(lockedMonitorJson);
+        }
+        return lockedMonitorsJson;
     }
 
     private long getAllocatedMemory(ThreadMXBean threadMXBean, ThreadInfo threadInfo) {
@@ -190,5 +198,93 @@ public class ThreadInformationProvider implements ServerInfoProvider {
     @Override
     public String name() {
         return "Thread Information";
+    }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        serverInfoWriter
+                .addChild("Thread Count", addThreadCount(threadMXBean))
+                .addChild("DeadLock Threads", addDeadLockThreadInformation(threadMXBean))
+                .addChild("Stack Trace", addThreadInformation(threadMXBean));
+    }
+
+    private Consumer<ServerInfoWriter> addThreadInformation(ThreadMXBean threadMXBean) {
+        ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(true, true);
+        return serverInfoWriter -> Arrays.stream(threadInfos).forEach(threadInfo -> serverInfoWriter
+                .addChild(valueOf(threadInfo.getThreadId()), threadInfoWriter -> threadInfoWriter
+                        .add("Id", threadInfo.getThreadId())
+                        .add("Name", threadInfo.getThreadName())
+                        .add("State", threadInfo.getThreadState().toString())
+                        .add("UserTime(nanoseconds)", threadMXBean.getThreadUserTime(threadInfo.getThreadId()))
+                        .add("CPUTime(nanoseconds)", threadMXBean.getThreadCpuTime(threadInfo.getThreadId()))
+                        .addJsonNode("DaemonThreadInfo", daemonThreadStatsCollector.statsFor(threadInfo.getThreadId()))
+                        .add("AllocatedMemory(Bytes)", getAllocatedMemory(threadMXBean, threadInfo))
+                        .addChild("Lock Monitor Info", addLockMonitorInfo(threadInfo))
+                        .addChild("Blocked Info", writer -> writer
+                                .add("Blocked Time(ms)", threadInfo.getBlockedTime())
+                                .add("Blocked Count", threadInfo.getBlockedCount())
+                        )
+                        .addChild("Time Info", writer -> writer
+                                .add("Waited Time(ms)", threadInfo.getWaitedTime())
+                                .add("Waited Count", threadInfo.getWaitedCount())
+                        )
+                        .addChild("Lock Info", lockInfoWriter -> lockInfoWriter
+                                .addJsonNode("Locked On", asJSON(threadInfo.getLockInfo()))
+                                .add("Lock Owner Thread Id", threadInfo.getLockOwnerId())
+                                .add("Lock Owner Thread Name", threadInfo.getLockOwnerName())
+                        )
+                        .addChild("State Info", writer -> writer
+                                .add("Suspended", threadInfo.isSuspended())
+                                .add("InNative", threadInfo.isInNative())
+                        )
+                        .addChildList("Stack Trace", Arrays.stream(threadInfo.getStackTrace())
+                                .map(StackTraceElement::toString).collect(Collectors.toList())
+                        )
+                )
+        );
+    }
+
+    private Consumer<ServerInfoWriter> addLockMonitorInfo(ThreadInfo threadInfo) {
+        return lockMonitorInfoWriter -> lockMonitorInfoWriter
+                .addJsonNode("Locked Synchronizers", asJSON(threadInfo.getLockedSynchronizers()))
+                .addJsonNode("Locked Monitors", getLockedMonitor(threadInfo.getLockedMonitors()));
+    }
+
+    private Consumer<ServerInfoWriter> addDeadLockThreadInformation(ThreadMXBean threadMXBean) {
+        long[] deadlockedThreads = threadMXBean.findDeadlockedThreads();
+        return writer -> {
+            if (deadlockedThreads != null && deadlockedThreads.length > 0) {
+                writer.add("Count", deadlockedThreads.length);
+                for (long deadlockedThread : deadlockedThreads) {
+                    ThreadInfo threadInfo = threadMXBean.getThreadInfo(deadlockedThread);
+                    LockInfo lockInfo = threadInfo.getLockInfo();
+                    MonitorInfo[] lockedMonitors = threadInfo.getLockedMonitors();
+                    writer
+                            .addChild("Thread Information", threadInfoWriter -> {
+                                if (lockInfo != null) {
+                                    threadInfoWriter.addJsonNode(threadInfo.getThreadName(), lockInfo);
+                                } else {
+                                    threadInfoWriter.add(threadInfo.getThreadName(), "This thread is not waiting for any locks");
+                                }
+                            })
+                            .addChild("Monitor Information Stack Frame where locks were taken", lockWriter -> {
+                                for (MonitorInfo lockedMonitor : lockedMonitors) {
+                                    lockWriter.add("Monitor for class " + lockedMonitor.getClassName(), "taken at stack frame " + lockedMonitor.getLockedStackFrame());
+                                }
+                            });
+                    writer.addChild("Stack Trace Of DeadLock Threads", stackTrackInfoWriter -> {
+                        stackTrackInfoWriter.add(Long.toString(deadlockedThread), Arrays.toString(threadInfo.getStackTrace()));
+                    });
+                }
+            }
+        };
+    }
+
+    private Consumer<ServerInfoWriter> addThreadCount(ThreadMXBean threadMXBean) {
+        return serverInfoWriter -> serverInfoWriter.add("Current", threadMXBean.getThreadCount())
+                .add("Total", threadMXBean.getTotalStartedThreadCount())
+                .add("Daemon", threadMXBean.getDaemonThreadCount())
+                .add("Peak", threadMXBean.getPeakThreadCount());
     }
 }

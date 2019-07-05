@@ -24,6 +24,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
+import java.util.function.Consumer;
 
 @Component
 public class ConfigRepositoryProvider implements ServerInfoProvider {
@@ -55,5 +57,20 @@ public class ConfigRepositoryProvider implements ServerInfoProvider {
     @Override
     public String name() {
         return "Config Git Repository";
+    }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        try {
+            serverInfoWriter.add("Number of commits", configRepository.commitCountOnMaster());
+            serverInfoWriter.addChild("GC Statistics", propertiesInfo(configRepository.getStatistics()));
+        } catch (GitAPIException | IncorrectObjectTypeException | MissingObjectException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Consumer<ServerInfoWriter> propertiesInfo(Properties statistics) {
+        return writer -> statistics
+                .forEach((key, value) -> writer.add(key.toString(), value.toString()));
     }
 }

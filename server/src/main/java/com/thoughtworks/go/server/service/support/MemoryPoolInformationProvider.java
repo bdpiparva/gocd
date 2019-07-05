@@ -46,4 +46,16 @@ public class MemoryPoolInformationProvider extends AbstractMemoryInformationProv
     public String name() {
         return "Memory Pool Information";
     }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
+        for (MemoryPoolMXBean memoryPoolMXBean : memoryPoolMXBeans) {
+            Map<String, Object> params = formatInJson(memoryPoolMXBean.getUsage());
+            params.put("Type", memoryPoolMXBean.getType());
+            serverInfoWriter
+                    .addChild(memoryPoolMXBean.getName(), addMemoryUsage(memoryPoolMXBean.getUsage())
+                            .andThen(writer -> writer.add("Type", memoryPoolMXBean.getType().toString())));
+        }
+    }
 }

@@ -13,19 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.thoughtworks.go.server.service.support;
 
-import java.util.Map;
+import java.util.Collection;
+import java.util.function.Consumer;
 
-/**
- * @understands appending any information that this provider wants to contribute while collecting the information for the
- */
-public interface ServerInfoProvider {
-    double priority();
+public interface ServerInfoWriter {
+    ServerInfoWriter add(String key, String value);
 
-    Map<String, Object> asJson();
+    ServerInfoWriter add(String key, long value);
 
-    String name();
+    ServerInfoWriter add(String key, boolean value);
 
-    void write(ServerInfoWriter serverInfoWriter);
+    ServerInfoWriter add(String key, double value);
+
+    ServerInfoWriter addChild(String key, Consumer<ServerInfoWriter> writerConsumer);
+
+    ServerInfoWriter addJsonNode(String key, Object object);
+
+    ServerInfoWriter addChildList(String key, Collection<String> values);
 }

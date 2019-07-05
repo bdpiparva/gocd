@@ -61,4 +61,17 @@ public class ServerHealthInformationProvider implements ServerInfoProvider {
     public String name() {
         return "Server Health Information";
     }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        ServerHealthStates allLogs = service.logs();
+        serverInfoWriter.add("Messages Count", allLogs.size())
+                .addChild("Messages", writer -> {
+                    for (ServerHealthState log : allLogs) {
+                        writer.add("message", log.getMessage());
+                        writer.add("detail", log.getDescription());
+                        writer.add("level", log.getLogLevel().toString());
+                    }
+                });
+    }
 }

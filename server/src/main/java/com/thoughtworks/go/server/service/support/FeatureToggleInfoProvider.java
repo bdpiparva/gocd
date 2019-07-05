@@ -27,7 +27,7 @@ public class FeatureToggleInfoProvider implements ServerInfoProvider {
     private FeatureToggleService featureToggleService;
 
     @Autowired
-    public FeatureToggleInfoProvider(FeatureToggleService featureToggleService){
+    public FeatureToggleInfoProvider(FeatureToggleService featureToggleService) {
         this.featureToggleService = featureToggleService;
     }
 
@@ -46,5 +46,10 @@ public class FeatureToggleInfoProvider implements ServerInfoProvider {
     @Override
     public String name() {
         return "Feature Toggles";
+    }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        serverInfoWriter.addJsonNode("Available Toggles", featureToggleService.allToggles().all());
     }
 }

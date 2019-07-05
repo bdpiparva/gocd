@@ -16,8 +16,8 @@
 
 package com.thoughtworks.go.api.support
 
-import com.thoughtworks.go.server.domain.Username
-import com.thoughtworks.go.server.service.result.HttpLocalizedOperationResult
+
+import com.thoughtworks.go.server.service.support.ServerInfoWriter
 import com.thoughtworks.go.server.service.support.ServerStatusService
 import com.thoughtworks.go.spark.ControllerTrait
 import com.thoughtworks.go.spark.SecurityServiceTrait
@@ -28,9 +28,8 @@ import org.mockito.Mock
 import org.mockito.invocation.InvocationOnMock
 
 import static org.mockito.ArgumentMatchers.any
-import static org.mockito.ArgumentMatchers.eq
 import static org.mockito.Mockito.doAnswer
-import static org.mockito.Mockito.when
+import static org.mockito.Mockito.doThrow
 import static org.mockito.MockitoAnnotations.initMocks
 
 class ApiSupportControllerV1Test implements SecurityServiceTrait, ControllerTrait<ApiSupportController> {
@@ -54,7 +53,10 @@ class ApiSupportControllerV1Test implements SecurityServiceTrait, ControllerTrai
     void 'should return agent json'() {
       loginAsAdmin()
       def res = [foo: "bar"]
-      when(serverStatusService.asJson(any() as Username, any() as HttpLocalizedOperationResult)).thenReturn(res)
+      doAnswer({ InvocationOnMock invocation ->
+        def result = invocation.getArgument(0) as ServerInfoWriter
+        result.add("foo", "bar")
+      }).when(serverStatusService).serverInfo(any() as ServerInfoWriter)
 
       get(controller.controllerPath())
 
@@ -68,16 +70,13 @@ class ApiSupportControllerV1Test implements SecurityServiceTrait, ControllerTrai
     void 'should return error response'() {
       loginAsAdmin()
       def message = "Failed to get information"
-      doAnswer({ InvocationOnMock invocation ->
-        def result = invocation.getArgument(1) as HttpLocalizedOperationResult
-        result.unprocessableEntity(message)
-      }).when(serverStatusService).asJson(eq(currentUsername()), any() as HttpLocalizedOperationResult)
+      doThrow(new RuntimeException(message)).when(serverStatusService).serverInfo(any() as ServerInfoWriter)
 
       get(controller.controllerPath())
 
       assertThatResponse()
         .isUnprocessableEntity()
-        .hasJsonMessage(message)
+        .hasJsonMessage("Failed to generate api support json. Please look at the 'go-server.log' for more details.")
         .hasContentType("application/json")
     }
   }

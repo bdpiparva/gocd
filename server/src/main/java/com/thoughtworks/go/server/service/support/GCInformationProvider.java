@@ -49,4 +49,15 @@ public class GCInformationProvider implements ServerInfoProvider {
     public String name() {
         return "GC Information";
     }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        List<GarbageCollectorMXBean> garbageCollectorMXBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        for (GarbageCollectorMXBean gcBean : garbageCollectorMXBeans) {
+            serverInfoWriter.addChild(gcBean.getName(), writer -> writer
+                    .add("Memory Pool Names", Arrays.toString(gcBean.getMemoryPoolNames()))
+                    .add("Collection Count", gcBean.getCollectionCount())
+                    .add("Collection Time", gcBean.getCollectionTime()));
+        }
+    }
 }

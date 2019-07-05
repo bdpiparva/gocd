@@ -19,7 +19,10 @@ import org.springframework.stereotype.Component;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Consumer;
 
 @Component
 public class RuntimeInformationProvider implements ServerInfoProvider {
@@ -63,5 +66,30 @@ public class RuntimeInformationProvider implements ServerInfoProvider {
     @Override
     public String name() {
         return "Runtime Information";
+    }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        long uptime = runtimeMXBean.getUptime();
+        long uptimeInSeconds = uptime / 1000;
+        long numberOfHours = uptimeInSeconds / (60 * 60);
+        long numberOfMinutes = (uptimeInSeconds / 60) - (numberOfHours * 60);
+        long numberOfSeconds = uptimeInSeconds % 60;
+
+        serverInfoWriter.add("Name", runtimeMXBean.getName());
+        serverInfoWriter.add("Uptime", runtimeMXBean.getUptime());
+        serverInfoWriter.add("Uptime (in Time Format)", "[About " + numberOfHours + " hours, " + numberOfMinutes + " minutes, " + numberOfSeconds + " seconds]");
+        serverInfoWriter.add("Spec Name", runtimeMXBean.getSpecName());
+        serverInfoWriter.add("Spec Vendor", runtimeMXBean.getSpecVendor());
+        serverInfoWriter.add("Spec Version", runtimeMXBean.getSpecVersion());
+
+        serverInfoWriter.addChildList("Input Arguments", runtimeMXBean.getInputArguments());
+        serverInfoWriter.addChild("System Properties", addMapProperties(runtimeMXBean.getSystemProperties()));
+        serverInfoWriter.addChild("Environment Variables", addMapProperties(System.getenv()));
+    }
+
+    private Consumer<ServerInfoWriter> addMapProperties(Map<String, String> map) {
+        return writer -> map.forEach((key, value) -> writer.add(key, value.toString()));
     }
 }

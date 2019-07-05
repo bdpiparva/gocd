@@ -66,6 +66,24 @@ public class FileLocationProvider implements ServerInfoProvider {
         return json;
     }
 
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        serverInfoWriter.add("loc.config.dir", systemEnvironment.configDir().getAbsolutePath());
+        Appender[] appenders = getAppenders(LOGGER_CONTEXT.getLoggerList());
+        for (int i = 0; i < appenders.length; i++) {
+            Appender appender = appenders[i];
+            if (!isFileAppender(appender)) {
+                continue;
+            }
+
+            FileAppender fileAppender = (FileAppender) appender;
+            File logFile = new File(fileAppender.rawFileProperty());
+            serverInfoWriter
+                    .add("loc.log.root." + i, new File(logFile.getAbsolutePath()).getParent())
+                    .add("loc.log.basename." + i, logFile.getName());
+        }
+    }
+
     private Appender[] getAppenders(List<Logger> loggers) {
         LinkedHashSet<Appender<ILoggingEvent>> appenders = new LinkedHashSet<>();
 

@@ -16,7 +16,6 @@
 package com.thoughtworks.go.server.service.support;
 
 import com.thoughtworks.go.CurrentGoCDVersion;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -40,5 +39,10 @@ public class ServerBasicInfoProvider implements ServerInfoProvider {
     @Override
     public String name() {
         return "Go Server Information";
+    }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        serverInfoWriter.add("Version", CurrentGoCDVersion.getInstance().formatted());
     }
 }

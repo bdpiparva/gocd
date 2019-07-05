@@ -69,4 +69,14 @@ public class PluginInfoProvider implements ServerInfoProvider {
     public String name() {
         return "Plugin information";
     }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (GoPluginDescriptor goPluginDescriptor : pluginManager.plugins()) {
+            CombinedPluginInfo combinedPluginInfo = pluginInfoFinder.pluginInfoFor(goPluginDescriptor.id());
+            list.add(getPluginJson(combinedPluginInfo, goPluginDescriptor));
+        }
+        serverInfoWriter.addJsonNode("plugins", list);
+    }
 }

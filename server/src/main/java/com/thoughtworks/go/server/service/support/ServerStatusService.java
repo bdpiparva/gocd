@@ -26,8 +26,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.*;
+
+import static java.lang.String.format;
 
 @Component
 public class ServerStatusService {
@@ -61,10 +62,23 @@ public class ServerStatusService {
             try {
                 json.put(provider.name(), provider.asJson());
             } catch (Exception e) {
-                json.put(provider.getClass().getCanonicalName(), String.format("Provider %s threw an exception: %s", provider.getClass(), e.getMessage()));
+                json.put(provider.getClass().getCanonicalName(), format("Provider %s threw an exception: %s", provider.getClass(), e.getMessage()));
                 LOGGER.warn("An API support page provider failed.", e);
             }
         }
         return json;
+    }
+
+    public void serverInfo(ServerInfoWriter serverInfoWriter) {
+        serverInfoWriter.add("Timestamp", DateUtils.formatISO8601(new Date()));
+        for (ServerInfoProvider provider : providers) {
+            try {
+                serverInfoWriter.addChild(provider.name(), provider::write);
+            } catch (Exception e) {
+                String errorMessage = format("Provider %s threw an exception: %s", provider.getClass(), e.getMessage());
+                serverInfoWriter.add(provider.getClass().getCanonicalName(), errorMessage);
+                LOGGER.warn("An API support page provider failed.", e);
+            }
+        }
     }
 }

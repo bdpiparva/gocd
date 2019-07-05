@@ -18,6 +18,7 @@ package com.thoughtworks.go.server.service.support;
 import java.lang.management.MemoryUsage;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public abstract class AbstractMemoryInformationProvider {
     Map<String, Object> formatInJson(MemoryUsage heapMemoryUsage) {
@@ -27,5 +28,14 @@ public abstract class AbstractMemoryInformationProvider {
         json.put("committed", heapMemoryUsage.getCommitted());
         json.put("max", heapMemoryUsage.getMax());
         return json;
+    }
+
+
+    Consumer<ServerInfoWriter> addMemoryUsage(MemoryUsage memoryUsage) {
+        return writer -> writer
+                .add("init", memoryUsage.getInit())
+                .add("used", memoryUsage.getUsed())
+                .add("committed", memoryUsage.getCommitted())
+                .add("max", memoryUsage.getMax());
     }
 }

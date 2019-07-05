@@ -24,7 +24,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonMap;
 
@@ -64,6 +67,40 @@ public class ConfigInfoProvider implements ServerInfoProvider {
         json.put("Security", securityInformation());
 
         return json;
+    }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        serverInfoWriter.addChild("Valid Config", configInfo())
+                .addChild("Security", securityInfo());
+    }
+
+    private Consumer<ServerInfoWriter> configInfo() {
+        CruiseConfig currentConfig = goConfigService.getCurrentConfig();
+        return writer -> writer.add("Number of pipelines", goConfigService.getAllPipelineConfigs().size())
+                .add("Number of agents", goConfigService.agents().size())
+                .add("Number of environments", currentConfig.getEnvironments().size())
+                .add("Number of unique materials", currentConfig.getAllUniqueMaterials().size())
+                .add("Number of schedulable materials", goConfigService.getSchedulableMaterials().size());
+    }
+
+
+    private Consumer<ServerInfoWriter> securityInfo() {
+        if (goConfigService.security().securityAuthConfigs().isEmpty()) {
+            return securityWriter -> securityWriter.add("Enabled", false);
+        }
+
+        return securityWriter -> securityWriter.add("Enabled", true)
+                .addJsonNode("Plugins", pluginsInfo());
+    }
+
+    private List<Map<String, Boolean>> pluginsInfo() {
+        return authorizationMetadataStore.allPluginInfos().stream()
+                .map(pluginInfo -> {
+                    final String pluginName = pluginInfo.getDescriptor().about().name();
+                    final boolean hashAuthConfig = !goConfigService.security().securityAuthConfigs().findByPluginId(pluginInfo.getDescriptor().id()).isEmpty();
+                    return singletonMap(pluginName, hashAuthConfig);
+                }).collect(Collectors.toList());
     }
 
     private LinkedHashMap<String, Object> securityInformation() {

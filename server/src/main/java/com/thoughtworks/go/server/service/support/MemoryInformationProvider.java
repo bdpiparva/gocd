@@ -43,4 +43,12 @@ public class MemoryInformationProvider extends AbstractMemoryInformationProvider
     public String name() {
         return "Memory Information";
     }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+        serverInfoWriter.addChild("Heap", addMemoryUsage(memoryMXBean.getHeapMemoryUsage()))
+                .addChild("Non Heap", addMemoryUsage(memoryMXBean.getNonHeapMemoryUsage()))
+                .add("Pending Finalization", memoryMXBean.getObjectPendingFinalizationCount());
+    }
 }

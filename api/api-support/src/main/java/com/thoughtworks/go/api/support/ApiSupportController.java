@@ -16,30 +16,27 @@
 
 package com.thoughtworks.go.api.support;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.thoughtworks.go.api.ControllerMethods;
-import com.thoughtworks.go.server.service.result.HttpLocalizedOperationResult;
 import com.thoughtworks.go.server.service.support.ServerStatusService;
 import com.thoughtworks.go.spark.Routes;
 import com.thoughtworks.go.spark.SparkController;
 import com.thoughtworks.go.spark.spring.SparkSpringController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import spark.Request;
 import spark.Response;
 
 import java.io.IOException;
-import java.util.Map;
 
-import static spark.Spark.get;
-import static spark.Spark.path;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static spark.Spark.*;
 
 @Component
 public class ApiSupportController implements SparkController, ControllerMethods, SparkSpringController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApiSupportController.class);
     private ServerStatusService serverStatusService;
-
-    private Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
     @Autowired
     public ApiSupportController(ServerStatusService serverStatusService) {
@@ -53,21 +50,27 @@ public class ApiSupportController implements SparkController, ControllerMethods,
 
     @Override
     public void setupRoutes() {
-        path(controllerBasePath(), () -> {
-            get("", this::show);
+        path(controllerPath(), () -> {
+            before("", APPLICATION_JSON_VALUE, this::setContentType);
+            get("", APPLICATION_JSON_VALUE, this::show);
         });
     }
 
-    public String show(Request request, Response response) throws IOException {
-        HttpLocalizedOperationResult result = new HttpLocalizedOperationResult();
-        Map<String, Object> information = serverStatusService.asJson(currentUsername(), result);
-        response.type("application/json");
-        if (result.isSuccessful()) {
-            gson.toJson(information, response.raw().getWriter());
-            return "";
-        }
+    private void setContentType(Request request, Response response) {
+        response.type(APPLICATION_JSON_VALUE);
+    }
 
-        return renderHTTPOperationResult(result, request, response);
+    public String show(Request request, Response response) throws IOException {
+        return writerForTopLevelObject(request, response, outputWriter -> {
+            ServerInfoWriterDelegator serverInfoWriter = new ServerInfoWriterDelegator(outputWriter);
+            try {
+                serverStatusService.serverInfo(serverInfoWriter);
+            } catch (Exception e) {
+                LOGGER.error("Failed to generate api support json:", e);
+                outputWriter.add("message", "Failed to generate api support json. Please look at the 'go-server.log' for more details.");
+                response.status(422);
+            }
+        });
     }
 
 }

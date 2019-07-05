@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Component
 public class CacheInformationProvider implements ServerInfoProvider {
@@ -64,6 +65,53 @@ public class CacheInformationProvider implements ServerInfoProvider {
         return "Cache Information";
     }
 
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        for (CacheManager cacheManager : CacheManager.ALL_CACHE_MANAGERS) {
+            serverInfoWriter.addChild(cacheManager.getName(), writer -> {
+                for (String cacheName : cacheManager.getCacheNames()) {
+                    writer.addChild(cacheName, cacheWriter -> {
+                        Cache cache = cacheManager.getCache(cacheName);
+                        cacheWriter.addChild("Cache configuration information", addCacheConfigurationInformation(cache));
+                        cacheWriter.addChild("Cache runtime information", addCacheRuntimeInformation(cache));
+                    });
+                }
+            });
+        }
+    }
+
+    private Consumer<ServerInfoWriter> addCacheRuntimeInformation(Cache cache) {
+        StatisticsGateway statistics = cache.getStatistics();
+        return serverInfoWriter -> {
+            serverInfoWriter.addChild("Get Time in milliseconds", addStatistics(statistics.cacheGetOperation()));
+            serverInfoWriter.addChild("Put Time in milliseconds", addStatistics(statistics.cachePutOperation()));
+            serverInfoWriter.addChild("Remove Time in milliseconds", addStatistics(statistics.cacheRemoveOperation()));
+            serverInfoWriter.add("Cache Size", statistics.getSize());
+            serverInfoWriter.add("Cache Size (Disk)", statistics.getLocalDiskSize());
+            serverInfoWriter.add("Cache Count (Disk)", statistics.localDiskHitCount());
+            serverInfoWriter.addChild("Cache Counts", addCacheCount(statistics));
+        };
+    }
+
+    private Consumer<ServerInfoWriter> addCacheCount(StatisticsGateway statistics) {
+        return serverInfoWriter -> {
+            serverInfoWriter.add("Hits", statistics.cacheHitCount());
+            serverInfoWriter.add("Miss", statistics.cacheMissCount());
+            serverInfoWriter.add("Expired", statistics.cacheExpiredCount());
+            serverInfoWriter.add("Eviction", statistics.cacheEvictedCount());
+            serverInfoWriter.add("Put", statistics.cachePutCount());
+            serverInfoWriter.add("Remove", statistics.cacheRemoveCount());
+        };
+    }
+
+    private Consumer<ServerInfoWriter> addStatistics(ExtendedStatistics.Result result) {
+        return writer -> {
+            writer.add("Average", String.valueOf(result.latency().average().value()));
+            writer.add("Minimum", String.valueOf(result.latency().minimum().value()));
+            writer.add("Maximum", String.valueOf(result.latency().maximum().value()));
+        };
+    }
+
     public Map<String, Object> getCacheRuntimeInformationAsJson(Cache cache) {
         LinkedHashMap<String, Object> json = new LinkedHashMap<>();
         StatisticsGateway statistics = cache.getStatistics();
@@ -95,6 +143,37 @@ public class CacheInformationProvider implements ServerInfoProvider {
         time.put("Minimum", String.valueOf(result.latency().minimum().value()));
         time.put("Maximum", String.valueOf(result.latency().maximum().value()));
         return time;
+    }
+
+    private Consumer<ServerInfoWriter> addCacheConfigurationInformation(Cache cache) {
+        CacheConfiguration config = cache.getCacheConfiguration();
+        return serverInfoWriter -> {
+            serverInfoWriter.add("Name", config.getName());
+            serverInfoWriter.add("Maximum Elements in Memory", config.getMaxEntriesLocalHeap());
+            serverInfoWriter.add("Maximum Elements on Disk", config.getMaxBytesLocalDisk());
+            serverInfoWriter.add("Memory Store Eviction Policy", config.getMemoryStoreEvictionPolicy().toString());
+            serverInfoWriter.add("Clean or Flush", config.isClearOnFlush());
+            serverInfoWriter.add("Eternal", config.isEternal());
+            serverInfoWriter.add("Time To Idle Seconds", config.getTimeToIdleSeconds());
+            serverInfoWriter.add("time To Live Seconds", config.getTimeToLiveSeconds());
+            if (config.getPersistenceConfiguration() != null) {
+                serverInfoWriter.add("Persistence Configuration Strategy", config.getPersistenceConfiguration().getStrategy().toString());
+                serverInfoWriter.add("Persistence Configuration Synchronous writes", config.getPersistenceConfiguration().getSynchronousWrites());
+            } else {
+                serverInfoWriter.add("Persistence Configuration Strategy", "NONE");
+                serverInfoWriter.add("Persistence Configuration Synchronous writes", false);
+            }
+            serverInfoWriter.add("Disk Spool Buffer Size in MB", config.getDiskSpoolBufferSizeMB());
+            serverInfoWriter.add("Disk Access Stripes", config.getDiskAccessStripes());
+            serverInfoWriter.add("Disk Expiry Thread Interval Seconds", config.getDiskExpiryThreadIntervalSeconds());
+            serverInfoWriter.add("Logging Enabled", config.getLogging());
+            serverInfoWriter.addJsonNode("Terracotta Configuration", config.getTerracottaConfiguration());
+            serverInfoWriter.addJsonNode("Cache Writer Configuration", config.getCacheWriterConfiguration());
+            serverInfoWriter.addJsonNode("Cache Loader Configurations", config.getCacheLoaderConfigurations());
+            serverInfoWriter.add("Frozen", config.isFrozen());
+            serverInfoWriter.add("Transactional Mode", config.getTransactionalMode().toString());
+            serverInfoWriter.add("Statistics Enabled", config.getStatistics());
+        };
     }
 
     public Map<String, Object> getCacheConfigurationInformationAsJson(Cache cache) {

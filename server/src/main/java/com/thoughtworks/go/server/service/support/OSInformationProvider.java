@@ -45,4 +45,14 @@ public class OSInformationProvider implements ServerInfoProvider {
     public String name() {
         return "OS Information";
     }
+
+    @Override
+    public void write(ServerInfoWriter serverInfoWriter) {
+        OperatingSystemMXBean operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
+        serverInfoWriter.add("OS Name", operatingSystemMXBean.getName())
+                .add("OS Version", operatingSystemMXBean.getVersion())
+                .add("System Architecture", operatingSystemMXBean.getArch())
+                .add("Available Processors", operatingSystemMXBean.getAvailableProcessors())
+                .add("Average System Load", operatingSystemMXBean.getSystemLoadAverage());
+    }
 }
