@@ -56,7 +56,7 @@ class ApiSupportControllerV1Test implements SecurityServiceTrait, ControllerTrai
       doAnswer({ InvocationOnMock invocation ->
         def result = invocation.getArgument(0) as ServerInfoWriter
         result.add("foo", "bar")
-      }).when(serverStatusService).serverInfo(any() as ServerInfoWriter)
+      }).when(serverStatusService).serverInfo(currentUsername(), any() as ServerInfoWriter)
 
       get(controller.controllerPath())
 
@@ -70,7 +70,7 @@ class ApiSupportControllerV1Test implements SecurityServiceTrait, ControllerTrai
     void 'should return error response'() {
       loginAsAdmin()
       def message = "Failed to get information"
-      doThrow(new RuntimeException(message)).when(serverStatusService).serverInfo(any() as ServerInfoWriter)
+      doThrow(new RuntimeException(message)).when(serverStatusService).serverInfo(currentUsername(), any() as ServerInfoWriter)
 
       get(controller.controllerPath())
 

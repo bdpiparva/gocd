@@ -17,6 +17,7 @@
 package com.thoughtworks.go.api.support;
 
 import com.thoughtworks.go.api.ControllerMethods;
+import com.thoughtworks.go.config.exceptions.NotAuthorizedException;
 import com.thoughtworks.go.server.service.support.ServerStatusService;
 import com.thoughtworks.go.spark.Routes;
 import com.thoughtworks.go.spark.SparkController;
@@ -64,7 +65,11 @@ public class ApiSupportController implements SparkController, ControllerMethods,
         return writerForTopLevelObject(request, response, outputWriter -> {
             ServerInfoWriterDelegator serverInfoWriter = new ServerInfoWriterDelegator(outputWriter);
             try {
-                serverStatusService.serverInfo(serverInfoWriter);
+                serverStatusService.serverInfo(currentUsername(), serverInfoWriter);
+            } catch (NotAuthorizedException e) {
+                LOGGER.error("Failed to generate api support json:", e);
+                outputWriter.add("message", e.getMessage());
+                response.status(422);
             } catch (Exception e) {
                 LOGGER.error("Failed to generate api support json:", e);
                 outputWriter.add("message", "Failed to generate api support json. Please look at the 'go-server.log' for more details.");

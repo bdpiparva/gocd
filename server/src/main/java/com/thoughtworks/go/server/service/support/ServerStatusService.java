@@ -15,6 +15,7 @@
  */
 package com.thoughtworks.go.server.service.support;
 
+import com.thoughtworks.go.config.exceptions.NotAuthorizedException;
 import com.thoughtworks.go.i18n.LocalizedMessage;
 import com.thoughtworks.go.server.domain.Username;
 import com.thoughtworks.go.server.service.SecurityService;
@@ -69,7 +70,11 @@ public class ServerStatusService {
         return json;
     }
 
-    public void serverInfo(ServerInfoWriter serverInfoWriter) {
+    public void serverInfo(Username username, ServerInfoWriter serverInfoWriter) {
+        if (!securityService.isUserAdmin(username)) {
+            throw new NotAuthorizedException("Does not have permissions to get server info. User have to be an admin in order to see the server info");
+        }
+
         serverInfoWriter.add("Timestamp", DateUtils.formatISO8601(new Date()));
         for (ServerInfoProvider provider : providers) {
             try {
