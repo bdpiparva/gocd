@@ -16,40 +16,57 @@
 package com.thoughtworks.go.server.domain.user;
 
 import com.thoughtworks.go.config.CaseInsensitiveString;
-import com.thoughtworks.go.domain.PersistentObject;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import com.thoughtworks.go.domain.HibernatePersistedObject;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import lombok.experimental.Accessors;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
-import java.io.Serializable;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import javax.persistence.*;
+import java.sql.Timestamp;
 import java.util.Date;
 
-public class PipelineSelections extends PersistentObject implements Serializable {
+import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
+
+@EqualsAndHashCode(doNotUseGetters = true, callSuper = true)
+@ToString(callSuper = true)
+@Accessors(chain = true)
+@Entity
+@Table(name = "pipelineSelections")
+@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+public class PipelineSelections extends HibernatePersistedObject {
     public static final int CURRENT_SCHEMA_VERSION = 2;
-
     public static final PipelineSelections ALL = new PipelineSelections(Filters.defaults(), null, null);
-
     private static final String HASH_ALGORITHM = "SHA-256";
 
     private Long userId;
-    private Date lastUpdate;
-    private Filters viewFilters = Filters.defaults();
+    @Column(name = "lastUpdate")
+    private Timestamp lastUpdated;
     private int version;
+
+    @Transient // persisted via getters/setters
+    private Filters viewFilters = Filters.defaults();
+    @Transient
     private String etag;
 
     public PipelineSelections() {
         this(Filters.defaults(), null, null);
     }
 
-    public PipelineSelections(Filters filters, Date date, Long userId) {
+    public PipelineSelections(Filters filters, Timestamp date, Long userId) {
         update(filters, date, userId);
     }
 
+    @Column(name = "filters")
+    @Access(AccessType.PROPERTY)
     public String getFilters() {
         return Filters.toJson(this.viewFilters);
     }
 
+    @Column(name = "filters")
+    @Access(AccessType.PROPERTY)
     public void setFilters(String filters) {
         this.viewFilters = Filters.fromJson(filters);
         updateEtag();
@@ -64,19 +81,19 @@ public class PipelineSelections extends PersistentObject implements Serializable
     }
 
     public Date lastUpdated() {
-        return lastUpdate;
+        return lastUpdated;
     }
 
-    public void update(Filters filters, Date date, Long userId) {
+    public void update(Filters filters, Timestamp date, Long userId) {
         this.userId = userId;
-        this.lastUpdate = date;
+        this.lastUpdated = date;
         this.viewFilters = null == filters ? Filters.defaults() : filters;
         this.version = CURRENT_SCHEMA_VERSION;
         updateEtag();
     }
 
     private void updateEtag() {
-        this.etag = sha256(this.getFilters().getBytes());
+        this.etag = sha256Hex(this.getFilters().getBytes());
     }
 
     public String etag() {
@@ -89,11 +106,6 @@ public class PipelineSelections extends PersistentObject implements Serializable
 
     public Long userId() {
         return userId;
-    }
-
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
     }
 
     /**
@@ -113,16 +125,4 @@ public class PipelineSelections extends PersistentObject implements Serializable
         return modified;
     }
 
-    private String sha256(byte[] bytes) {
-        MessageDigest md;
-
-        try {
-            md = MessageDigest.getInstance(HASH_ALGORITHM);
-        } catch (NoSuchAlgorithmException ignored) {
-            return null; // Using standard algorithm that is required to exist
-        }
-
-        md.update(bytes);
-        return Hex.encodeHexString(md.digest());
-    }
 }

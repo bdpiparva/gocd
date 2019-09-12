@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 ThoughtWorks, Inc.
+ * Copyright 2019 ThoughtWorks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,10 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.Type;
 
 import javax.persistence.Cacheable;
 import javax.persistence.Entity;
-import javax.persistence.Table;
+import java.sql.Timestamp;
 import java.util.Date;
 
 @EqualsAndHashCode(doNotUseGetters = true, callSuper = true)
@@ -35,26 +34,15 @@ import java.util.Date;
 @Entity
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-@Table(name = "versioninfos")
-public class VersionInfo extends HibernatePersistedObject {
-    private String componentName;
-    @Type(type = "com.thoughtworks.go.domain.GoVersionConverter")
-    private GoVersion installedVersion;
-    @Type(type = "com.thoughtworks.go.domain.GoVersionConverter")
-    private GoVersion latestVersion;
-    private Date latestVersionUpdatedAt;
+public class DataSharingSettings extends HibernatePersistedObject {
+    private boolean allowSharing = true;
+    private String updatedBy;
+    private Timestamp updatedOn;
 
-    public VersionInfo(String componentName,
-                       GoVersion currentVersion,
-                       GoVersion latestVersion,
-                       Date latestVersionUpdatedAt) {
-        this.componentName = componentName;
-        this.installedVersion = currentVersion;
-        this.latestVersion = latestVersion;
-        this.latestVersionUpdatedAt = latestVersionUpdatedAt;
+    public DataSharingSettings(boolean allowSharing, String updatedBy, Date updatedOn) {
+        setAllowSharing(allowSharing)
+                .setUpdatedBy(updatedBy)
+                .setUpdatedOn(new Timestamp(updatedOn.getTime()));
     }
 
-    public VersionInfo(String componentName, GoVersion currentVersion) {
-        this(componentName, currentVersion, null, null);
-    }
 }

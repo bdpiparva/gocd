@@ -77,9 +77,6 @@ public class PipelineLabelCorrector {
             LOGGER.error(message);
             serverHealthService.update(ServerHealthState.error("Data Error: pipeline operations will fail", message,
                     HealthStateType.general(HealthStateScope.forDuplicatePipelineLabel())));
-            if (systemEnvironment.shouldFailStartupOnDataError()) {
-                throw new RuntimeException(message);
-            }
         }
     }
 }

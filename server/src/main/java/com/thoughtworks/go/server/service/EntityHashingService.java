@@ -25,7 +25,6 @@ import com.thoughtworks.go.config.registry.ConfigElementImplementationRegistry;
 import com.thoughtworks.go.config.remote.ConfigRepoConfig;
 import com.thoughtworks.go.domain.NotificationFilter;
 import com.thoughtworks.go.domain.PipelineGroups;
-import com.thoughtworks.go.domain.UsageStatisticsReporting;
 import com.thoughtworks.go.domain.packagerepository.PackageDefinition;
 import com.thoughtworks.go.domain.packagerepository.PackageRepositories;
 import com.thoughtworks.go.domain.packagerepository.PackageRepository;
@@ -36,7 +35,6 @@ import com.thoughtworks.go.listener.ConfigChangedListener;
 import com.thoughtworks.go.listener.EntityConfigChangedListener;
 import com.thoughtworks.go.plugin.domain.common.CombinedPluginInfo;
 import com.thoughtworks.go.server.cache.GoCache;
-import com.thoughtworks.go.server.domain.DataSharingSettings;
 import com.thoughtworks.go.server.domain.PluginSettings;
 import com.thoughtworks.go.server.initializers.Initializer;
 import com.thoughtworks.go.server.service.lookups.CommandSnippet;
@@ -235,7 +233,7 @@ public class EntityHashingService implements ConfigChangedListener, Initializer 
 
     public String md5ForEntity(ArtifactStore artifactStore) {
         String cacheKey = cacheKey(artifactStore, artifactStore.getId());
-        return getDbEntityMd5FromCache(cacheKey, artifactStore);
+        return getDomainEntityMd5FromCache(artifactStore, cacheKey);
     }
 
     private String cacheKey(Object domainObject, CaseInsensitiveString name) {
@@ -292,16 +290,6 @@ public class EntityHashingService implements ConfigChangedListener, Initializer 
             md5s.add(md5ForEntity(role));
         }
         return CachedDigestUtils.md5Hex(StringUtils.join(md5s, SEP_CHAR));
-    }
-
-    public String md5ForEntity(UsageStatisticsReporting usageStatisticsReporting) {
-        String cacheKey = cacheKey(usageStatisticsReporting, usageStatisticsReporting.getServerId());
-        return getDbEntityMd5FromCache(cacheKey, usageStatisticsReporting);
-    }
-
-    public String md5ForEntity(DataSharingSettings dataSharingSettings) {
-        String cacheKey = cacheKey(dataSharingSettings, "data_sharing_settings");
-        return getDbEntityMd5FromCache(cacheKey, dataSharingSettings);
     }
 
     public String md5ForEntity(PipelineGroups pipelineGroups) {

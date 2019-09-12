@@ -220,7 +220,7 @@ class UserTest {
     @Test
     void shouldCopyUser() {
         User user = new User("user", "User", new String[]{"match"}, "email", false);
-        user.setId(100);
+        user.setId(100L);
         user.addNotificationFilter(new NotificationFilter("p1", "S1", StageEvent.Fixed, true));
         User clonedUser = new User(user);
         assertThat(clonedUser).isEqualTo(user);
@@ -235,9 +235,9 @@ class UserTest {
     void shouldRemoveNotificationFilter() {
         User user = new User("u");
         NotificationFilter filter1 = new NotificationFilter("p1", "s1", StageEvent.Fails, true);
-        filter1.setId(1);
+        filter1.setId(1L);
         NotificationFilter filter2 = new NotificationFilter("p1", "s2", StageEvent.Fails, true);
-        filter2.setId(2);
+        filter2.setId(2L);
         user.addNotificationFilter(filter1);
         user.addNotificationFilter(filter2);
 

@@ -23,24 +23,47 @@ import com.thoughtworks.go.domain.exception.ValidationException;
 import com.thoughtworks.go.domain.materials.ValidationBean;
 import com.thoughtworks.go.server.domain.Username;
 import com.thoughtworks.go.validation.Validator;
+import lombok.*;
+import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.util.*;
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
-public class User extends PersistentObject {
+@EqualsAndHashCode(doNotUseGetters = true, callSuper = true)
+@ToString(callSuper = true)
+@Getter
+@Setter
+@Accessors(chain = true)
+@NoArgsConstructor
+@Entity
+@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+@Table(name = "users")
+public class User extends HibernatePersistedObject {
     private String name;
     private String displayName;
     private String matcher;
     private String email;
     private boolean emailMe;
     private boolean enabled;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "userid")
+    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+    @Fetch(FetchMode.SELECT)
+    @EqualsAndHashCode.Exclude //See https://hibernate.atlassian.net/browse/hhh-5409
     private List<NotificationFilter> notificationFilters = new ArrayList<>();
-
-    public User() {
-    }
 
     public User(String name) {
         this(name, "", "");
@@ -76,41 +99,8 @@ public class User extends PersistentObject {
         }
     }
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public boolean isEmailMe() {
-        return emailMe;
-    }
-
-    public void setEmailMe(boolean emailMe) {
-        this.emailMe = emailMe;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = StringUtils.trim(name);
-    }
-
     public Username getUsername() {
         return Username.valueOf(name);
-    }
-
-    /**
-     * only used by ibatis
-     *
-     * @java.lang.Deprecated
-     */
-    public String getMatcher() {
-        return matcher;
     }
 
     public List<String> getMatchers() {
@@ -119,12 +109,12 @@ public class User extends PersistentObject {
         return matchers;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
     public void setEmail(String email) {
         this.email = StringUtils.trim(email);
+    }
+
+    public void setName(String name) {
+        this.name = StringUtils.trim(name);
     }
 
     public void setMatcher(String matcher) {
@@ -151,62 +141,6 @@ public class User extends PersistentObject {
             }
         }
         return false;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        User user = (User) o;
-        if (emailMe != user.emailMe) {
-            return false;
-        }
-        if (enabled != user.enabled) {
-            return false;
-        }
-        if (email != null ? !email.equals(user.email) : user.email != null) {
-            return false;
-        }
-        if (matcher != null ? !matcher.equals(user.matcher) : user.matcher != null) {
-            return false;
-        }
-        if (name != null ? !name.equals(user.name) : user.name != null) {
-            return false;
-        }
-        if (displayName != null ? !displayName.equals(user.displayName) : user.displayName != null) {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (name != null ? name.hashCode() : 0);
-        result = 31 * result + (displayName != null ? displayName.hashCode() : 0);
-        result = 31 * result + (matcher != null ? matcher.hashCode() : 0);
-        result = 31 * result + (email != null ? email.hashCode() : 0);
-        result = 31 * result + (emailMe ? 1 : 0);
-        result = 31 * result + (enabled ? 1 : 0);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("User[name=%s, displayName= %s, matcher=%s, email=%s, emailMe=%s]", name, displayName, matcher, email, emailMe);
-    }
-
-    public List<NotificationFilter> getNotificationFilters() {
-        return notificationFilters;
-    }
-
-    public void setNotificationFilters(List<NotificationFilter> notificationFilters) {
-        this.notificationFilters = notificationFilters;
     }
 
     private boolean shouldSendEmailToMe() {
@@ -242,10 +176,6 @@ public class User extends PersistentObject {
 
     public void validateLoginName() throws ValidationException {
         validate(Validator.presenceValidator("Login name field must be non-blank."), getName());
-    }
-
-    public boolean isEnabled() {
-        return enabled;
     }
 
     public void disable() {

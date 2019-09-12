@@ -20,23 +20,38 @@ import com.thoughtworks.go.config.PipelineConfig;
 import com.thoughtworks.go.config.Validatable;
 import com.thoughtworks.go.config.ValidationContext;
 import com.thoughtworks.go.util.GoConstants;
+import lombok.*;
+import lombok.experimental.Accessors;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 
+import javax.persistence.*;
 import java.util.HashMap;
 import java.util.Map;
 
 import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
 
-public class NotificationFilter extends PersistentObject implements Validatable {
+@EqualsAndHashCode(doNotUseGetters = true, callSuper = true)
+@ToString(callSuper = true)
+@Getter
+@Setter
+@Accessors(chain = true)
+@NoArgsConstructor
+@Entity
+@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+@Table(name = "notificationfilters")
+public class NotificationFilter extends HibernatePersistedObject implements Validatable {
+    @Column(name = "pipeline")
     private String pipelineName;
+    @Column(name = "stage")
     private String stageName;
+    @Enumerated(EnumType.STRING)
     private StageEvent event;
     private boolean myCheckin;
 
     private transient ConfigErrors errors = new ConfigErrors();
-
-    private NotificationFilter() {
-    }
 
     public NotificationFilter(String pipelineName, String stageName, StageEvent event, boolean myCheckin) {
         this.pipelineName = pipelineName;
@@ -48,38 +63,6 @@ public class NotificationFilter extends PersistentObject implements Validatable 
     public NotificationFilter(NotificationFilter filter) {
         this(filter.pipelineName, filter.stageName, filter.event, filter.myCheckin);
         this.id = filter.id;
-    }
-
-    public String getPipelineName() {
-        return pipelineName;
-    }
-
-    public void setPipelineName(String pipelineName) {
-        this.pipelineName = pipelineName;
-    }
-
-    public String getStageName() {
-        return stageName;
-    }
-
-    public void setStageName(String stageName) {
-        this.stageName = stageName;
-    }
-
-    public StageEvent getEvent() {
-        return event;
-    }
-
-    public void setEvent(StageEvent event) {
-        this.event = event;
-    }
-
-    public boolean isMyCheckin() {
-        return myCheckin;
-    }
-
-    public void setMyCheckin(boolean myCheckin) {
-        this.myCheckin = myCheckin;
     }
 
     public boolean isAppliedOnAllCheckins() {
@@ -104,13 +87,14 @@ public class NotificationFilter extends PersistentObject implements Validatable 
             myCheckin ? "Mine" : "All");
     }
 
-    @Override
-    public String toString() {
-        return "NotificationFilter[" + description() + "]";
+    public boolean include(NotificationFilter filter) {
+        return pipelineName.equals(filter.pipelineName)
+            && stageName.equals(filter.stageName)
+            && event.include(filter.event);
     }
 
     /**
-     * Used for JSON serialization in Rails
+     * Used for JSON serialization in Rails. See NotificationFiltersRepresenter
      *
      * @return a Map representation of this {@link NotificationFilter} instance that is serializable by JRuby
      */
@@ -124,49 +108,6 @@ public class NotificationFilter extends PersistentObject implements Validatable 
         map.put("event", event.toString());
 
         return map;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        NotificationFilter filter = (NotificationFilter) o;
-
-        if (myCheckin != filter.myCheckin) {
-            return false;
-        }
-        if (event != filter.event) {
-            return false;
-        }
-        if (pipelineName != null ? !pipelineName.equals(filter.pipelineName) : filter.pipelineName != null) {
-            return false;
-        }
-        if (stageName != null ? !stageName.equals(filter.stageName) : filter.stageName != null) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (pipelineName != null ? pipelineName.hashCode() : 0);
-        result = 31 * result + (stageName != null ? stageName.hashCode() : 0);
-        result = 31 * result + (event != null ? event.hashCode() : 0);
-        result = 31 * result + (myCheckin ? 1 : 0);
-        return result;
-    }
-
-    public boolean include(NotificationFilter filter) {
-        return pipelineName.equals(filter.pipelineName)
-            && stageName.equals(filter.stageName)
-            && event.include(filter.event);
     }
 
     @Override

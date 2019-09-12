@@ -53,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.*;
 
-public class UserServiceTest {
+class UserServiceTest {
     private UserDao userDao;
     private GoConfigService goConfigService;
     private SecurityService securityService;
@@ -232,7 +232,6 @@ public class UserServiceTest {
 
         doNothing().when(userDao).saveOrUpdate(foo.getUser());
         when(userDao.findUser("fooUser")).thenReturn(new NullUser());
-        when(userDao.enabledUserCount()).thenReturn(10L);
 
         HttpLocalizedOperationResult result = new HttpLocalizedOperationResult();
         userService.create(Arrays.asList(foo), result);
@@ -259,7 +258,6 @@ public class UserServiceTest {
         User invalidUser = new User("fooUser", "Foo User", "invalidEmail");
         UserSearchModel searchModel = new UserSearchModel(invalidUser, UserSourceType.PLUGIN);
         when(userDao.findUser("fooUser")).thenReturn(new NullUser());
-        when(userDao.enabledUserCount()).thenReturn(1L);
 
         userService.create(Arrays.asList(searchModel), result);
 
@@ -742,7 +740,7 @@ public class UserServiceTest {
         void shouldUpdateTheUserInDBIfDisplayNameIsUpdated() {
             String username = "new-user";
             User originalUserInDB = new User(username, null, "");
-            originalUserInDB.setId(1);
+            originalUserInDB.setId(1L);
             when(userDao.findUser(username)).thenReturn(originalUserInDB);
             User updatedUser = new User(username, "display-name", "");
             userService.addOrUpdateUser(updatedUser, new SecurityAuthConfig());
@@ -754,10 +752,9 @@ public class UserServiceTest {
         void shouldUpdateTheUserInDBIfEmailIsUpdated() {
             String username = "new-user";
             User originalUserInDB = new User(username, "", null);
-            originalUserInDB.setId(1);
+            originalUserInDB.setId(1L);
             when(userDao.findUser(username)).thenReturn(originalUserInDB);
             User updatedUser = new User(username, "", "email");
-            userService.addOrUpdateUser(updatedUser, new SecurityAuthConfig());
 
             verify(userDao).saveOrUpdate(updatedUser);
         }

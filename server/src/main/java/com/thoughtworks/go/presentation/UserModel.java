@@ -15,11 +15,11 @@
  */
 package com.thoughtworks.go.presentation;
 
-import java.util.List;
+import com.thoughtworks.go.domain.User;
+
 import java.util.ArrayList;
 import java.util.Collections;
-
-import com.thoughtworks.go.domain.User;
+import java.util.List;
 
 public class UserModel {
     private final User user;

@@ -27,8 +27,6 @@ class UsageStatisticsReportingRepresenterTest {
     @Test
     void "should represent usage statistics reporting"() {
         def metricsReporting = new UsageStatisticsReporting("server-id", new Date())
-        def statsSharedAt = new Date()
-        metricsReporting.setLastReportedAt(statsSharedAt)
         metricsReporting.setDataSharingServerUrl(dataSharingServerUrl)
         metricsReporting.setDataSharingGetEncryptionKeysUrl(dataSharingGetEncryptionKeysUrl)
 
@@ -42,7 +40,7 @@ class UsageStatisticsReportingRepresenterTest {
                   server_id                           : metricsReporting.getServerId(),
                   data_sharing_server_url             : dataSharingServerUrl,
                   data_sharing_get_encryption_keys_url: dataSharingGetEncryptionKeysUrl,
-                  last_reported_at                    : metricsReporting.lastReportedAt().getTime(),
+                  last_reported_at                    : metricsReporting.lastReportedAt.getTime(),
                   can_report                          : true
                 ]
         ]

@@ -15,7 +15,6 @@
  */
 package com.thoughtworks.go.server.cache;
 
-import com.thoughtworks.go.domain.NullUser;
 import com.thoughtworks.go.domain.PersistentObject;
 import com.thoughtworks.go.server.transaction.TransactionSynchronizationManager;
 import net.sf.ehcache.Ehcache;
@@ -63,7 +62,7 @@ public class GoCache {
         this.ehCache = cache;
         this.transactionSynchronizationManager = transactionSynchronizationManager;
         this.nullObjectClasses = new HashSet<>();
-        nullObjectClasses.add(NullUser.class);
+//        nullObjectClasses.add(NullUser.class);
         registerAsCacheEvictionListener();
     }
 

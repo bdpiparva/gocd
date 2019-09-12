@@ -16,7 +16,7 @@
 package com.thoughtworks.go.server.service.datasharing;
 
 import com.thoughtworks.go.server.cache.GoCache;
-import com.thoughtworks.go.server.domain.DataSharingSettings;
+import com.thoughtworks.go.domain.DataSharingSettings;
 import com.thoughtworks.go.domain.UsageStatisticsReporting;
 import com.thoughtworks.go.server.dao.UsageStatisticsReportingSqlMapDao;
 import com.thoughtworks.go.server.service.result.HttpLocalizedOperationResult;
@@ -61,7 +61,7 @@ public class DataSharingUsageStatisticsReportingServiceTest {
         when(goCache.getOrDefault(USAGE_DATA_IGNORE_LAST_UPDATED_AT, false)).thenReturn(false);
 
         dataSharingSetting = new DataSharingSettings();
-        when(dataSharingSettingsService.get()).thenReturn(dataSharingSetting);
+        when(dataSharingSettingsService.load()).thenReturn(dataSharingSetting);
         when(systemEnvironment.isProductionMode()).thenReturn(true);
     }
 
@@ -86,25 +86,25 @@ public class DataSharingUsageStatisticsReportingServiceTest {
     @Test
     public void shouldDisallowReportingIfDataSharingSettingsIsNotAllowed() {
         UsageStatisticsReporting existingMetric = new UsageStatisticsReporting("server-id", new Date());
-        assertTrue(existingMetric.canReport());
+        assertTrue(existingMetric.isCanReport());
         when(usageStatisticsReportingSqlMapDao.load()).thenReturn(existingMetric);
 
         dataSharingSetting = new DataSharingSettings();
         dataSharingSetting.setAllowSharing(false);
-        when(dataSharingSettingsService.get()).thenReturn(dataSharingSetting);
+        when(dataSharingSettingsService.load()).thenReturn(dataSharingSetting);
 
         UsageStatisticsReporting statisticsReporting = service.get();
-        assertFalse(statisticsReporting.canReport());
+        assertFalse(statisticsReporting.isCanReport());
     }
 
     @Test
     public void shouldDisallowReportingDataSharingIfAlreadyReportedToday() {
         UsageStatisticsReporting existingMetric = new UsageStatisticsReporting("server-id", new Date());
-        assertThat(existingMetric.lastReportedAt().getDate(), is(new Date().getDate()));
+        assertThat(existingMetric.getLastReportedAt().getDate(), is(new Date().getDate()));
         when(usageStatisticsReportingSqlMapDao.load()).thenReturn(existingMetric);
 
         UsageStatisticsReporting statisticsReporting = service.get();
-        assertFalse(statisticsReporting.canReport());
+        assertFalse(statisticsReporting.isCanReport());
     }
 
     @Test
@@ -112,11 +112,11 @@ public class DataSharingUsageStatisticsReportingServiceTest {
         Date lastReportedAt = new Date();
         lastReportedAt.setDate(lastReportedAt.getDate() - 1);
         UsageStatisticsReporting existingMetric = new UsageStatisticsReporting("server-id", lastReportedAt);
-        assertThat(existingMetric.lastReportedAt().getDate(), is(LocalDate.now().minusDays(1).getDayOfMonth()));
+        assertThat(existingMetric.getLastReportedAt().getDate(), is(LocalDate.now().minusDays(1).getDayOfMonth()));
         when(usageStatisticsReportingSqlMapDao.load()).thenReturn(existingMetric);
 
         UsageStatisticsReporting statisticsReporting = service.get();
-        assertTrue(statisticsReporting.canReport());
+        assertTrue(statisticsReporting.isCanReport());
     }
 
     @Test
@@ -127,12 +127,12 @@ public class DataSharingUsageStatisticsReportingServiceTest {
         when(usageStatisticsReportingSqlMapDao.load()).thenReturn(existingMetric);
 
         UsageStatisticsReporting statisticsReporting = service.get();
-        assertTrue(statisticsReporting.canReport());
+        assertTrue(statisticsReporting.isCanReport());
         HttpLocalizedOperationResult result = new HttpLocalizedOperationResult();
         service.startReporting(result);
         assertTrue(result.isSuccessful());
         statisticsReporting = service.get();
-        assertFalse(statisticsReporting.canReport());
+        assertFalse(statisticsReporting.isCanReport());
     }
 
     @Test
@@ -143,7 +143,7 @@ public class DataSharingUsageStatisticsReportingServiceTest {
         when(usageStatisticsReportingSqlMapDao.load()).thenReturn(existingMetric);
 
         UsageStatisticsReporting statisticsReporting = service.get();
-        assertTrue(statisticsReporting.canReport());
+        assertTrue(statisticsReporting.isCanReport());
         HttpLocalizedOperationResult result = new HttpLocalizedOperationResult();
         service.startReporting(result);
         assertTrue(result.isSuccessful());
@@ -151,7 +151,7 @@ public class DataSharingUsageStatisticsReportingServiceTest {
         clock.addSeconds(60 * 31);
 
         statisticsReporting = service.get();
-        assertTrue(statisticsReporting.canReport());
+        assertTrue(statisticsReporting.isCanReport());
     }
 
     @Test
@@ -161,7 +161,7 @@ public class DataSharingUsageStatisticsReportingServiceTest {
         when(usageStatisticsReportingSqlMapDao.load()).thenReturn(existingMetric);
 
         UsageStatisticsReporting statisticsReporting = service.get();
-        assertFalse(statisticsReporting.canReport());
+        assertFalse(statisticsReporting.isCanReport());
     }
 
     @Test

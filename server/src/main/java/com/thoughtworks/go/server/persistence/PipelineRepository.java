@@ -43,12 +43,12 @@ import java.util.*;
 public class PipelineRepository extends HibernateDaoSupport {
     private static final Logger LOGGER = LoggerFactory.getLogger(PipelineRepository.class);
     private final QueryExtensions queryExtensions;
-    private GoCache goCache;
+    private final GoCache goCache;
 
     @Autowired
-    public PipelineRepository(SessionFactory sessionFactory, GoCache goCache, Database databaseStrategy) {
-        this.goCache = goCache;
+    public PipelineRepository(SessionFactory sessionFactory, Database databaseStrategy, GoCache goCache) {
         this.queryExtensions = databaseStrategy.getQueryExtensions();
+        this.goCache = goCache;
         setSessionFactory(sessionFactory);
     }
 
@@ -60,7 +60,7 @@ public class PipelineRepository extends HibernateDaoSupport {
         return query.executeUpdate();
     }
 
-public void updatePipelineTimeline(final PipelineTimeline pipelineTimeline, final List<PipelineTimelineEntry> tempEntriesForRollback) {
+    public void updatePipelineTimeline(final PipelineTimeline pipelineTimeline, final List<PipelineTimelineEntry> tempEntriesForRollback) {
         getHibernateTemplate().execute(new HibernateCallback() {
             private static final int PIPELINE_NAME = 0;
             private static final int ID = 1;
@@ -159,7 +159,7 @@ public void updatePipelineTimeline(final PipelineTimeline pipelineTimeline, fina
 
                     int nextI = i + 1;
                     if (((nextI < matches.size() && id(matches.get(nextI)) != curId) ||//new pipeline instance starts in next record, so capture this one
-                            nextI == matches.size())) {//this is the last record, so capture it
+                        nextI == matches.size())) {//this is the last record, so capture it
                         entry = new PipelineTimelineEntry(name, curId, counter, revisions, naturalOrder);
                         newPipelines.add(entry);
                     }

@@ -20,7 +20,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Users extends BaseCollection<User> {
-public Users() {
+    public Users() {
     }
 
     public Users(List<User> users) {

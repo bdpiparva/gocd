@@ -15,11 +15,6 @@
  */
 package com.thoughtworks.go.server.service;
 
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.thoughtworks.go.config.CaseInsensitiveString;
 import com.thoughtworks.go.config.PipelineConfig;
 import com.thoughtworks.go.config.StageConfig;
@@ -29,27 +24,40 @@ import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate3.support.HibernateDaoSupport;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionCallback;
+
+import java.util.AbstractMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class ConfigDbStateRepository extends HibernateDaoSupport {
 
+    private final SessionFactory sessionFactory;
     private final GoConfigService goConfigService;
     private final TransactionTemplate transactionTemplate;
 
     @Autowired
-    public ConfigDbStateRepository(SessionFactory sessionFactory, GoConfigService goConfigService, TransactionTemplate transactionTemplate) {
+    public ConfigDbStateRepository(SessionFactory sessionFactory,
+                                   GoConfigService goConfigService,
+                                   TransactionTemplate transactionTemplate) {
+        this.sessionFactory = sessionFactory;
         this.goConfigService = goConfigService;
         this.transactionTemplate = transactionTemplate;
         setSessionFactory(sessionFactory);
     }
 
     public void flushConfigState() {
-        transactionTemplate.execute((TransactionCallback) status -> flushArtifactCleanupProhibitions());
+        transactionTemplate.execute(status -> {
+            flushArtifactCleanupProhibitions();
+        });
     }
 
-    private Object flushArtifactCleanupProhibitions() {
-        List<StageArtifactCleanupProhibited> existingEntries = (List<StageArtifactCleanupProhibited>) getHibernateTemplate().find("from StageArtifactCleanupProhibited");
+    private void flushArtifactCleanupProhibitions() {
+        List<StageArtifactCleanupProhibited> existingEntries = sessionFactory.getCurrentSession()
+                .createCriteria(StageArtifactCleanupProhibited.class)
+                .list();
+
         HashMap<Map.Entry<String, String>, StageArtifactCleanupProhibited> persistentStateMap = new HashMap<>();
         for (StageArtifactCleanupProhibited persistentState : existingEntries) {
             persistentState.setProhibited(false);
@@ -64,10 +72,9 @@ public class ConfigDbStateRepository extends HibernateDaoSupport {
                     stageArtifactCleanupProhibited = new StageArtifactCleanupProhibited(CaseInsensitiveString.str(pipelineConfig.name()), CaseInsensitiveString.str(stageConfig.name()));
                 }
                 stageArtifactCleanupProhibited.setProhibited(stageConfig.isArtifactCleanupProhibited());
-                getHibernateTemplate().saveOrUpdate(stageArtifactCleanupProhibited);
+                sessionFactory.getCurrentSession().saveOrUpdate(stageArtifactCleanupProhibited);
             }
         }
-        return null;
     }
 
 }

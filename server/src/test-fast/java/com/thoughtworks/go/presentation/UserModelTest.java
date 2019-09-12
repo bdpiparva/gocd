@@ -13,10 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.thoughtworks.go.listener;
+package com.thoughtworks.go.presentation;
 
-import com.thoughtworks.go.server.domain.DataSharingSettings;
+import com.thoughtworks.go.domain.User;
+import org.junit.Test;
 
-public interface DataSharingSettingsChangeListener {
-    void onDataSharingSettingsChange(DataSharingSettings updatedSettings);
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+public class UserModelTest {
+    @Test
+    public void shouldReturnSortedRoles() {
+        UserModel foo = new UserModel(new User("foo", new ArrayList<>(), "foo@bar.com", false), Arrays.asList("bbb", "aaa", "BBB"), true);
+        assertThat(foo.getRoles(), is(Arrays.asList("BBB", "aaa", "bbb")));
+    }
 }

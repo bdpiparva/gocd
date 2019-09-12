@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.thoughtworks.go.presentation;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+package com.thoughtworks.go.apiv3.users;
 
 import com.thoughtworks.go.domain.User;
-import org.junit.Test;
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.is;
 
-public class UserModelTest {
-    @Test
-    public void shouldReturnSortedRoles() {
-        UserModel foo = new UserModel(new User("foo", new ArrayList<>(), "foo@bar.com", false), Arrays.asList("bbb", "aaa", "BBB"), true);
-        assertThat(foo.getRoles(), is(Arrays.asList("BBB", "aaa", "bbb")));
+public class UsersMother {
+    public static User withName(String username) {
+        User user = new User(username);
+
+        user.setEmail(String.format("%s@no-reply.com", username));
+        user.setEmailMe(true);
+        user.setMatcher(String.format("awesome, %s", username));
+        user.setDisplayName(username);
+
+        return user;
     }
 }

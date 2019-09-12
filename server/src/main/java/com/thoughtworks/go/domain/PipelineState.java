@@ -19,12 +19,11 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.Type;
 
 import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-import java.util.Date;
+import javax.persistence.Transient;
 
 @EqualsAndHashCode(doNotUseGetters = true, callSuper = true)
 @ToString(callSuper = true)
@@ -33,28 +32,41 @@ import java.util.Date;
 @Accessors(chain = true)
 @NoArgsConstructor
 @Entity
+@Table(name = "pipelinestates")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-@Table(name = "versioninfos")
-public class VersionInfo extends HibernatePersistedObject {
-    private String componentName;
-    @Type(type = "com.thoughtworks.go.domain.GoVersionConverter")
-    private GoVersion installedVersion;
-    @Type(type = "com.thoughtworks.go.domain.GoVersionConverter")
-    private GoVersion latestVersion;
-    private Date latestVersionUpdatedAt;
+public class PipelineState extends HibernatePersistedObject {
+    public final static PipelineState NOT_LOCKED = new PipelineState("NOT_LOCKED", -100);
 
-    public VersionInfo(String componentName,
-                       GoVersion currentVersion,
-                       GoVersion latestVersion,
-                       Date latestVersionUpdatedAt) {
-        this.componentName = componentName;
-        this.installedVersion = currentVersion;
-        this.latestVersion = latestVersion;
-        this.latestVersionUpdatedAt = latestVersionUpdatedAt;
+    private String pipelineName;
+    private boolean locked = false;
+    private long lockedByPipelineId;
+    @Transient
+    @EqualsAndHashCode.Include
+    private transient StageIdentifier lockedBy = null;
+
+    private PipelineState(String pipelineName, int id) {
+        this(pipelineName);
+        setId((long) id);
     }
 
-    public VersionInfo(String componentName, GoVersion currentVersion) {
-        this(componentName, currentVersion, null, null);
+    public PipelineState(String pipelineName) {
+        this.pipelineName = pipelineName;
+    }
+
+    public PipelineState(String pipelineName, StageIdentifier identifier) {
+        this(pipelineName);
+        this.lockedBy = identifier;
+    }
+
+    public void lock(long lockedByPipelineId) {
+        this.lockedByPipelineId = lockedByPipelineId;
+        this.locked = true;
+    }
+
+    public void unlock() {
+        locked = false;
+        lockedBy = null;
+        lockedByPipelineId = 0;
     }
 }

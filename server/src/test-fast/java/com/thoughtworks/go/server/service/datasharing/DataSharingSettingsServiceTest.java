@@ -15,10 +15,8 @@
  */
 package com.thoughtworks.go.server.service.datasharing;
 
+import com.thoughtworks.go.domain.DataSharingSettings;
 import com.thoughtworks.go.server.dao.DataSharingSettingsSqlMapDao;
-import com.thoughtworks.go.server.domain.DataSharingSettings;
-import com.thoughtworks.go.server.service.EntityHashingService;
-import com.thoughtworks.go.server.transaction.TransactionSynchronizationManager;
 import com.thoughtworks.go.server.transaction.TransactionTemplate;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +28,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import java.util.Date;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,17 +39,13 @@ public class DataSharingSettingsServiceTest {
     @Mock
     private DataSharingSettingsSqlMapDao dataSharingSettingsSqlMapDao;
     @Mock
-    private EntityHashingService entityHashingService;
-    @Mock
     private TransactionTemplate transactionTemplate;
-    @Mock
-    private TransactionSynchronizationManager transactionSynchronizationManager;
 
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        sharingSettingsService = new DataSharingSettingsService(dataSharingSettingsSqlMapDao, transactionTemplate,
-                transactionSynchronizationManager, entityHashingService);
+        sharingSettingsService = new DataSharingSettingsService(dataSharingSettingsSqlMapDao
+        );
 
         when(transactionTemplate.execute(any(TransactionCallback.class))).then(invocation -> {
             ((TransactionCallback) invocation.getArguments()[0]).doInTransaction(new SimpleTransactionStatus());
@@ -70,19 +64,7 @@ public class DataSharingSettingsServiceTest {
         verify(dataSharingSettingsSqlMapDao).saveOrUpdate(argumentCaptor.capture());
         DataSharingSettings updatedDataSharingSettings = argumentCaptor.getValue();
 
-        assertThat(updatedDataSharingSettings.allowSharing(), is(newConsent));
-        assertThat(updatedDataSharingSettings.updatedBy(), is(consentedBy));
-    }
-
-    @Test
-    public void shouldInvokeListenersAfterSettingsAreUpdated() {
-        final boolean[] isListenerInvoked = {false};
-        sharingSettingsService.register(updatedSettings -> isListenerInvoked[0] = true);
-
-        assertFalse(isListenerInvoked[0]);
-
-        sharingSettingsService.createOrUpdate(new DataSharingSettings(true, "Bob", new Date()));
-
-        assertTrue(isListenerInvoked[0]);
+        assertThat(updatedDataSharingSettings.isAllowSharing(), is(newConsent));
+        assertThat(updatedDataSharingSettings.getUpdatedBy(), is(consentedBy));
     }
 }
