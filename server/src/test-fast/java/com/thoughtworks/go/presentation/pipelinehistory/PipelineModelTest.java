@@ -15,8 +15,6 @@
  */
 package com.thoughtworks.go.presentation.pipelinehistory;
 
-import java.util.Date;
-
 import com.thoughtworks.go.config.materials.MaterialConfigs;
 import com.thoughtworks.go.domain.JobResult;
 import com.thoughtworks.go.domain.JobState;
@@ -25,6 +23,8 @@ import com.thoughtworks.go.domain.PipelinePauseInfo;
 import com.thoughtworks.go.domain.buildcause.BuildCause;
 import com.thoughtworks.go.helper.ModificationsMother;
 import org.junit.Test;
+
+import java.util.Date;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

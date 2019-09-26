@@ -16,17 +16,15 @@
 package com.thoughtworks.go.server.dao;
 
 import com.thoughtworks.go.config.CaseInsensitiveString;
-import com.thoughtworks.go.config.CaseInsensitiveString;
 import com.thoughtworks.go.domain.*;
 import com.thoughtworks.go.domain.buildcause.BuildCause;
-import com.thoughtworks.go.presentation.pipelinehistory.PipelineInstanceModel;
 import com.thoughtworks.go.presentation.pipelinehistory.PipelineInstanceModel;
 import com.thoughtworks.go.presentation.pipelinehistory.PipelineInstanceModels;
 
 import java.util.List;
 
 
-public interface PipelineDao {
+public interface PipelineDao extends PipelineInstanceModelDao {
 
     Pipeline save(Pipeline pipeline);
 
@@ -71,13 +69,7 @@ public interface PipelineDao {
 
     Pipeline findEarlierPipelineThatPassedForStage(String pipelineName, String stageName, double naturalOrder);
 
-    PipelineInstanceModels loadActivePipelineInstancesFor(CaseInsensitiveString pipelineName);
-
-    PipelineInstanceModel loadHistoryByIdWithBuildCause(Long id);
-
     int getPageNumberForCounter(String pipelineName, int pipelineCounter, int limit);
-
-    PipelineInstanceModels findMatchingPipelineInstances(String pipelineName, String pattern, int limit);
 
     BuildCause findBuildCauseOfPipelineByNameAndCounter(String name, int counter);
 

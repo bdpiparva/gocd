@@ -15,20 +15,12 @@
  */
 package com.thoughtworks.go.presentation.pipelinehistory;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-
 import com.thoughtworks.go.config.CaseInsensitiveString;
 import com.thoughtworks.go.config.materials.MaterialConfigs;
 import com.thoughtworks.go.config.materials.mercurial.HgMaterial;
 import com.thoughtworks.go.config.materials.mercurial.HgMaterialConfig;
 import com.thoughtworks.go.config.materials.svn.SvnMaterial;
-import com.thoughtworks.go.domain.JobResult;
-import com.thoughtworks.go.domain.JobState;
-import com.thoughtworks.go.domain.MaterialRevision;
-import com.thoughtworks.go.domain.MaterialRevisions;
-import com.thoughtworks.go.domain.StageIdentifier;
+import com.thoughtworks.go.domain.*;
 import com.thoughtworks.go.domain.buildcause.BuildCause;
 import com.thoughtworks.go.domain.materials.Material;
 import com.thoughtworks.go.domain.materials.Modification;
@@ -38,6 +30,10 @@ import com.thoughtworks.go.helper.ModificationsMother;
 import com.thoughtworks.go.helper.PipelineHistoryMother;
 import org.joda.time.DateTime;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 
 import static com.thoughtworks.go.domain.buildcause.BuildCause.createWithEmptyModifications;
 import static com.thoughtworks.go.helper.MaterialsMother.hgMaterial;
