@@ -463,4 +463,12 @@ export class SparkRoutes {
   static commentOnPipelineInstance(pipelineName: string, pipelineCounter: string | number) {
     return `/go/api/pipelines/${pipelineName}/instance/${pipelineCounter}/comment`;
   }
+
+  static apiPipelineVsmPath(name: string, counter: number) {
+    return `/go/pipelines/value_stream_map/${name}/${counter}.json`;
+  }
+
+  static apiMaterialVsmPath(fingerprint: string, revision: string) {
+    return `/go/materials/value_stream_map/${fingerprint}/${revision}.json`;
+  }
 }
