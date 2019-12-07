@@ -15,13 +15,14 @@
  */
 export namespace VSM {
   export interface MaterialMetaJSON {
-    material_fingerprint: string;
-    material_revision: string;
+    name: string;
+    fingerprint: string;
+    revision: string;
   }
 
   export interface PipelineMetaJSON {
-    pipeline_name: string;
-    pipeline_counter: number;
+    name: string;
+    counter: number;
   }
 
   export interface PageMetaJSON {

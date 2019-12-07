@@ -17,17 +17,20 @@
 import {VSM} from "./vsm_json";
 
 export class MaterialMeta {
+  readonly name: string;
   readonly fingerprint: string;
   readonly revision: string;
 
-  constructor(fingerprint: string, revision: string) {
+  constructor(name: string, fingerprint: string, revision: string) {
+    this.name        = name;
     this.fingerprint = fingerprint;
     this.revision    = revision;
   }
 
   static fromJSON(json: VSM.MaterialMetaJSON) {
-    return new MaterialMeta(json.material_fingerprint,
-      json.material_revision);
+    return new MaterialMeta(json.name,
+      json.fingerprint,
+      json.revision);
   }
 }
 
@@ -41,7 +44,7 @@ export class PipelineMeta {
   }
 
   static fromJSON(json: VSM.PipelineMetaJSON) {
-    return new PipelineMeta(json.pipeline_name, json.pipeline_counter);
+    return new PipelineMeta(json.name, json.counter);
   }
 }
 

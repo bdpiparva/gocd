@@ -471,4 +471,8 @@ export class SparkRoutes {
   static apiMaterialVsmPath(fingerprint: string, revision: string) {
     return `/go/materials/value_stream_map/${fingerprint}/${revision}.json`;
   }
+
+  static pipelineActivityLink(pipelineName: string) {
+    return `/go/pipeline/activity/${pipelineName}`;
+  }
 }

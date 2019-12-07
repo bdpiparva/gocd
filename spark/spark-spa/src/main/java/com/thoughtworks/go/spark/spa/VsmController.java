@@ -16,6 +16,8 @@
 
 package com.thoughtworks.go.spark.spa;
 
+import com.thoughtworks.go.domain.materials.MaterialConfig;
+import com.thoughtworks.go.server.service.GoConfigService;
 import com.thoughtworks.go.spark.Routes;
 import com.thoughtworks.go.spark.SparkController;
 import com.thoughtworks.go.spark.spring.SPAAuthenticationHelper;
@@ -32,10 +34,12 @@ import static spark.Spark.*;
 public class VsmController implements SparkController {
     private final SPAAuthenticationHelper authenticationHelper;
     private final TemplateEngine engine;
+    private final GoConfigService goConfigService;
 
-    public VsmController(SPAAuthenticationHelper authenticationHelper, TemplateEngine engine) {
+    public VsmController(SPAAuthenticationHelper authenticationHelper, TemplateEngine engine, GoConfigService goConfigService) {
         this.authenticationHelper = authenticationHelper;
         this.engine = engine;
+        this.goConfigService = goConfigService;
     }
 
     @Override
@@ -53,16 +57,40 @@ public class VsmController implements SparkController {
     }
 
     private ModelAndView pipelineVMS(Request request, Response response) {
+        String pipelineName = request.params("pipeline_name");
+        String pipelineCounter = request.params("pipeline_counter");
+        Map<String, String> entity = new HashMap<>();
+        entity.put("name", pipelineName);
+        entity.put("counter", pipelineCounter);
+        
         Map<Object, Object> object = new HashMap<Object, Object>() {{
             put("viewTitle", "Value Stream Map");
+            put("meta", getMeta("pipeline", entity));
         }};
         return new ModelAndView(object, null);
     }
 
     private ModelAndView materialVMS(Request request, Response response) {
+        String materialFingerprint = request.params("material_fingerprint");
+        String materialRevision = request.params("revision");
+
+        MaterialConfig materialConfig = goConfigService.getCurrentConfig().materialConfigFor(materialFingerprint);
+        Map<String, String> entity = new HashMap<>();
+        entity.put("name", materialConfig.getDisplayName());
+        entity.put("fingerprint", materialFingerprint);
+        entity.put("revision", materialRevision);
+
         Map<Object, Object> object = new HashMap<Object, Object>() {{
             put("viewTitle", "Value Stream Map");
+            put("meta", getMeta("material", entity));
         }};
         return new ModelAndView(object, null);
+    }
+
+    private Map<String, Object> getMeta(String type, Map<String, String> entity) {
+        Map<String, Object> meta = new HashMap<>();
+        meta.put("type", type);
+        meta.put("entity", entity);
+        return meta;
     }
 }

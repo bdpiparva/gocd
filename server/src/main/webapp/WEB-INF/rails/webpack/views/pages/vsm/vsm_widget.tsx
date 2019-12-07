@@ -16,14 +16,38 @@
 
 import {MithrilViewComponent} from "jsx/mithril-component";
 import m from "mithril";
-import {Vsm} from "models/vsm/vsm";
+import Stream from "mithril/stream";
+import {Level, Node, Vsm} from "models/vsm/vsm";
+import {NodeWidget} from "./node_widget";
 
 interface Attrs {
-  dummy?: Vsm;
+  vsm: Stream<Vsm>;
 }
 
 export class VsmWidget extends MithrilViewComponent<Attrs> {
   view(vnode: m.Vnode<Attrs>) {
-    return <div> This is widget</div>;
+    if (!vnode.attrs.vsm()) {
+      return <div>Handle this</div>;
+    }
+
+    return vnode.attrs.vsm().levels.map((level: Level, index: number) => {
+      return <LevelWidget nodes={level.nodes}/>;
+    });
+  }
+}
+
+interface LevelAttrs {
+  nodes: Node[];
+}
+
+export class LevelWidget extends MithrilViewComponent<Level> {
+  view(vnode: m.Vnode<LevelAttrs>) {
+    if (vnode.attrs.nodes.length === 0) {
+      return <div>No levels: Handle this</div>;
+    }
+
+    return vnode.attrs.nodes.map((node: Node, index: number) => {
+      return <NodeWidget node={node}/>;
+    });
   }
 }
