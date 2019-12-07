@@ -799,4 +799,10 @@ public class Routes {
     public static class PipelineActivity {
         public static final String SPA_BASE = "/pipeline/activity/:pipeline_name";
     }
+
+    public static class Vsm {
+        public static final String SPA_BASE = "/vsm";
+        public static final String PIPELINE_VSM = "/pipeline/:pipeline_name/:pipeline_counter";
+        public static final String MATERIAL_VSM = "/material/:material_fingerprint/:revision";
+    }
 }
