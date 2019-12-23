@@ -63,6 +63,7 @@ import {SortOrder, Table, TableSortHandler} from "views/components/table";
 import * as Tooltip from "views/components/tooltip";
 import {TooltipSize} from "views/components/tooltip";
 import {Step, Wizard} from "views/components/wizard";
+import {ConsoleLog} from "../components/console_log";
 
 let type               = "a";
 const formValue        = Stream("initial value");
@@ -103,6 +104,7 @@ const pageChangeCallback = (pagination: Stream<Pagination>, newPage: number) => 
   }));
   return false;
 };
+const fullscreen         = Stream<boolean>(false);
 
 export class KitchenSink extends MithrilViewComponent<null> {
   provider: DynamicSuggestionProvider = new DynamicSuggestionProvider(type);
@@ -127,6 +129,12 @@ export class KitchenSink extends MithrilViewComponent<null> {
                           onPageChange={(newPage: number) => pageChangeCallback(smallNumberOfPages, newPage)}/>
         <br/>
 
+        <h3>Console Log</h3>
+        <div style={"display:flex;max-height: 200px"}>
+          <ConsoleLog fullscreen={fullscreen} lines={["Something", "Second line", generateLoremIpsmeParagraphs(10)]}/>
+        </div>
+
+        <br/>
         <FlashMessage type={MessageType.info} message={"This page is awesome!"}/>
         <FlashMessage type={MessageType.success} message={"Everything works as expected!"}/>
         <FlashMessage type={MessageType.warning} message={"This might not work!"}/>
