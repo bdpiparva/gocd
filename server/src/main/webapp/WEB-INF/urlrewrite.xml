@@ -23,6 +23,11 @@
 -->
 
 <urlrewrite>
+  <rule>
+    <name>Preferences SPA</name>
+    <from>^/preferences(/?)$</from>
+    <to last="true">/spark/preferences</to>
+  </rule>
 
   <rule>
     <name>Internal Compare APIs</name>

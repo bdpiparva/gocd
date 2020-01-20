@@ -872,4 +872,8 @@ public class Routes {
         public static final String BIT_BUCKET_CLOUD = "/bitbucket/notify";
         public static final String BIT_BUCKET_SERVER = "/hosted_bitbucket/notify";
     }
+
+    public static class Preferences {
+        public static final String SPA_BASE = "/preferences";
+    }
 }
